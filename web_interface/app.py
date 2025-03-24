@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 # Create the Flask application
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
+app.secret_key = os.environ.get("SESSION_SECRET", "beer-dispenser-dev-key-2025")
 
 # Import routes
 from web_interface import routes

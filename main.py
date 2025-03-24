@@ -34,12 +34,17 @@ else:
     print("Using mock GPIO implementation for simulation")
 
 from controllers.main_controller import MainController
-from web_interface.app import app, start_web_server
+from web_interface.app import app
 from web_interface.routes import set_controller
 from config import WEB_INTERFACE
 
 # Global variables
 controller = None
+
+# Make app available for Gunicorn
+application = app
+# This is the object that Gunicorn looks for by default
+app = application
 
 def signal_handler(sig, frame):
     """Handle shutdown signals gracefully."""
@@ -81,7 +86,7 @@ def main():
     try:
         # Start web interface in the main thread
         logger.info("Starting web interface")
-        start_web_server(
+        app.run(
             host=WEB_INTERFACE['HOST'],
             port=WEB_INTERFACE['PORT'],
             debug=WEB_INTERFACE['DEBUG']
