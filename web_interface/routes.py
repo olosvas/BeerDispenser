@@ -2,7 +2,8 @@
 Routes for the beer dispensing system web interface.
 """
 import logging
-from flask import render_template, request, jsonify, redirect, url_for
+import time
+from flask import render_template, request, jsonify, redirect, url_for, session
 from web_interface.app import app
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,29 @@ def set_controller(controller):
 
 @app.route('/')
 def index():
-    """Render the home page."""
+    """Redirect to customer interface."""
+    return redirect(url_for('customer'))
+
+
+@app.route('/customer')
+def customer():
+    """Render the customer ordering interface."""
+    if _controller is None:
+        return render_template('customer.html', error="System not available")
+        
+    system_state = _controller.get_system_state()
+    # Only show customer interface if system is in idle state
+    if system_state['state'] != 'idle' and system_state['state'] != 'error':
+        return render_template('customer.html', 
+                              error="System is currently busy. Please wait a moment.",
+                              state=system_state)
+    
+    return render_template('customer.html', state=system_state)
+
+
+@app.route('/admin')
+def admin():
+    """Render the admin page."""
     if _controller is None:
         return render_template('index.html', error="System controller not initialized")
         
@@ -152,3 +175,57 @@ def api_reset_stats():
         }
     
     return jsonify({'status': 'success', 'message': 'Statistics reset successfully'})
+
+
+@app.route('/api/verify_age', methods=['POST'])
+def api_verify_age():
+    """API endpoint to verify customer age for beer dispensing."""
+    if _controller is None:
+        return jsonify({'error': 'System controller not initialized'}), 500
+    
+    # Get verification data
+    try:
+        data = request.json
+        fullname = data.get('fullname')
+        birthdate = data.get('birthdate')
+        id_number = data.get('id_number')
+        
+        # Validate required fields
+        if not all([fullname, birthdate, id_number]):
+            return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
+        
+        # Parse birthdate
+        from datetime import datetime
+        try:
+            birth_date = datetime.strptime(birthdate, '%Y-%m-%d')
+            today = datetime.now()
+            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+            
+            # Check legal drinking age (21)
+            if age < 21:
+                return jsonify({
+                    'status': 'error', 
+                    'message': 'You must be at least 21 years old to order beer.',
+                    'verified': False
+                }), 403
+                
+            # Store verification in session
+            session['age_verified'] = True
+            session['fullname'] = fullname
+            
+            # In a real system, we'd log the verification for legal purposes
+            logger.info(f"Age verification successful for {fullname} (ID: {id_number}, Age: {age})")
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Age verification successful',
+                'verified': True,
+                'age': age
+            })
+            
+        except ValueError:
+            return jsonify({'status': 'error', 'message': 'Invalid date format'}), 400
+            
+    except Exception as e:
+        logger.error(f"Error during age verification: {e}")
+        return jsonify({'status': 'error', 'message': 'Verification failed'}), 500

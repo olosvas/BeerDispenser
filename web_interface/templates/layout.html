@@ -17,11 +17,13 @@
     {% block head %}{% endblock %}
 </head>
 <body>
+    {% if 'admin' in request.path or 'status' in request.path or 'control' in request.path %}
+    <!-- Admin Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand" href="/admin">
                 <i class="fas fa-beer me-2"></i>
-                Beer Dispensing System
+                Beer Dispensing System Admin
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -29,8 +31,8 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
-                            <i class="fas fa-home me-1"></i> Home
+                        <a class="nav-link {% if request.path == '/admin' %}active{% endif %}" href="/admin">
+                            <i class="fas fa-home me-1"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
@@ -43,10 +45,26 @@
                             <i class="fas fa-cogs me-1"></i> Control
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/customer">
+                            <i class="fas fa-user me-1"></i> Customer View
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
+    {% else %}
+    <!-- Customer Navigation -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <span class="navbar-brand mb-0 h1">
+                <i class="fas fa-beer me-2"></i>
+                Automated Beer Dispenser
+            </span>
+        </div>
+    </nav>
+    {% endif %}
 
     <div class="container my-4">
         {% block content %}{% endblock %}
@@ -57,9 +75,13 @@
             <div class="row">
                 <div class="col text-center">
                     <p class="mb-0">
-                        <i class="fas fa-robot me-1"></i> Automated Beer Dispensing System
+                        <i class="fas fa-beer me-1"></i> Premium Quality Beer
                         <span class="mx-2">|</span>
-                        <i class="fas fa-code me-1"></i> Powered by Raspberry Pi
+                        <i class="fas fa-robot me-1"></i> Automated Dispensing
+                        {% if 'admin' in request.path or 'status' in request.path or 'control' in request.path %}
+                        <span class="mx-2">|</span>
+                        <a href="/admin" class="text-light"><i class="fas fa-lock me-1"></i> Admin</a>
+                        {% endif %}
                     </p>
                 </div>
             </div>
