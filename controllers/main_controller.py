@@ -4,7 +4,7 @@ Main controller module that coordinates all system components.
 import time
 import logging
 import threading
-from hardware import CupDispenser, BeerDispenser, CupDelivery, SystemMonitor
+from hardware import CupDispenser, BeerDispenser, CupDelivery, SystemMonitor, IDScanner
 from controllers.error_handler import ErrorHandler
 from config import SYSTEM_STATES
 
@@ -20,6 +20,7 @@ class MainController:
         self.beer_dispenser = BeerDispenser()
         self.cup_delivery = CupDelivery()
         self.system_monitor = SystemMonitor()
+        self.id_scanner = IDScanner()
         
         # Initialize error handler
         self.error_handler = ErrorHandler()
@@ -35,7 +36,8 @@ class MainController:
             'beers_poured': 0,
             'total_volume_ml': 0,
             'errors': 0,
-            'last_operation_time': 0
+            'last_operation_time': 0,
+            'verifications': 0
         }
         self.stats_lock = threading.Lock()
     
@@ -60,6 +62,11 @@ class MainController:
             
             if not self.cup_delivery.initialize():
                 logger.error("Cup delivery initialization failed")
+                return False
+                
+            # Initialize ID scanner
+            if not self.id_scanner.initialize():
+                logger.error("ID scanner initialization failed")
                 return False
             
             # Start system monitoring
@@ -273,6 +280,7 @@ class MainController:
             self.cup_dispenser.cleanup()
             self.beer_dispenser.cleanup()
             self.cup_delivery.cleanup()
+            self.id_scanner.cleanup()
             
             logger.info("System shutdown complete")
             return True
