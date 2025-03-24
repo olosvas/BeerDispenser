@@ -1,0 +1,295 @@
+{% extends 'layout.html' %}
+
+{% block title %}System Status{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-line me-2"></i> System Status</h2>
+    </div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ error }}
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-dark">
+                        <h4><i class="fas fa-info-circle me-2"></i> Current State</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h5>System State:</h5>
+                            <span id="system-state" class="badge {% if state.state == 'idle' %}bg-success{% elif state.state == 'error' %}bg-danger{% elif state.state == 'maintenance' %}bg-warning{% else %}bg-primary{% endif %} fs-5">
+                                {{ state.state }}
+                            </span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Beer Temperature:</th>
+                                        <td id="beer-temp">{{ state.beer_temp|round(1) }}°C</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cup Present:</th>
+                                        <td id="cup-present">{{ "Yes" if state.sensors.cup_present else "No" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Cup Weight:</th>
+                                        <td id="cup-weight">{{ state.sensors.weight|round|int }} g</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Last Sensor Update:</th>
+                                        <td id="last-update">{{ state.sensors.last_update|int }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-dark">
+                        <h4><i class="fas fa-chart-bar me-2"></i> Statistics</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row">Cups Dispensed:</th>
+                                        <td id="cups-dispensed">{{ state.stats.cups_dispensed }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Beers Poured:</th>
+                                        <td id="beers-poured">{{ state.stats.beers_poured }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Total Volume:</th>
+                                        <td id="total-volume">{{ state.stats.total_volume_ml|round|int }} ml</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Error Count:</th>
+                                        <td id="error-count">{{ state.stats.errors }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Last Operation Time:</th>
+                                        <td id="last-operation-time">{{ state.stats.last_operation_time|round(2) }} seconds</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <button id="reset-stats-btn" class="btn btn-warning">
+                                <i class="fas fa-redo me-2"></i>
+                                Reset Statistics
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header bg-dark">
+                <h4><i class="fas fa-exclamation-circle me-2"></i> Error History</h4>
+            </div>
+            <div class="card-body">
+                {% if errors %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Component</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="error-table-body">
+                            {% for error in errors %}
+                            <tr>
+                                <td>{{ error.timestamp|int }}</td>
+                                <td>{{ error.component or 'System' }}</td>
+                                <td>{{ error.message }}</td>
+                                <td>
+                                    {% if error.processed %}
+                                    <span class="badge bg-success">Processed</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    No errors recorded
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Format the timestamp to readable date/time
+    function formatTimestamp(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString();
+    }
+    
+    // Update all timestamps on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const lastUpdate = document.getElementById('last-update');
+        if (lastUpdate) {
+            lastUpdate.textContent = formatTimestamp(parseInt(lastUpdate.textContent));
+        }
+        
+        const errorTableBody = document.getElementById('error-table-body');
+        if (errorTableBody) {
+            const timestampCells = errorTableBody.querySelectorAll('tr td:first-child');
+            timestampCells.forEach(cell => {
+                cell.textContent = formatTimestamp(parseInt(cell.textContent));
+            });
+        }
+    });
+
+    // Handle reset statistics button
+    const resetStatsBtn = document.getElementById('reset-stats-btn');
+    if (resetStatsBtn) {
+        resetStatsBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset all statistics?')) {
+                fetch('/api/reset_stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Statistics reset successfully');
+                        updateSystemStatus(); // Update the display
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resetting statistics');
+                });
+            }
+        });
+    }
+    
+    function onStatusUpdate(data) {
+        // Update beer temperature
+        const beerTemp = document.getElementById('beer-temp');
+        if (beerTemp) {
+            beerTemp.textContent = `${data.beer_temp.toFixed(1)}°C`;
+        }
+        
+        // Update cup present indicator
+        const cupPresent = document.getElementById('cup-present');
+        if (cupPresent) {
+            cupPresent.textContent = data.sensors.cup_present ? 'Yes' : 'No';
+        }
+        
+        // Update cup weight
+        const cupWeight = document.getElementById('cup-weight');
+        if (cupWeight) {
+            cupWeight.textContent = `${Math.round(data.sensors.weight)} g`;
+        }
+        
+        // Update last sensor update timestamp
+        const lastUpdate = document.getElementById('last-update');
+        if (lastUpdate) {
+            lastUpdate.textContent = formatTimestamp(data.sensors.last_update);
+        }
+        
+        // Update statistics
+        const cupsDispensed = document.getElementById('cups-dispensed');
+        if (cupsDispensed) {
+            cupsDispensed.textContent = data.stats.cups_dispensed;
+        }
+        
+        const beersPoured = document.getElementById('beers-poured');
+        if (beersPoured) {
+            beersPoured.textContent = data.stats.beers_poured;
+        }
+        
+        const totalVolume = document.getElementById('total-volume');
+        if (totalVolume) {
+            totalVolume.textContent = `${Math.round(data.stats.total_volume_ml)} ml`;
+        }
+        
+        const errorCount = document.getElementById('error-count');
+        if (errorCount) {
+            errorCount.textContent = data.stats.errors;
+        }
+        
+        const lastOperationTime = document.getElementById('last-operation-time');
+        if (lastOperationTime) {
+            lastOperationTime.textContent = `${data.stats.last_operation_time.toFixed(2)} seconds`;
+        }
+        
+        // Refresh error table (this would require additional API call)
+        // For simplicity, we're not implementing real-time error updates here
+    }
+    
+    // Refresh error history periodically
+    setInterval(function() {
+        fetch('/api/errors')
+            .then(response => response.json())
+            .then(data => {
+                if (data.errors) {
+                    const errorTableBody = document.getElementById('error-table-body');
+                    if (errorTableBody) {
+                        errorTableBody.innerHTML = '';
+                        
+                        data.errors.forEach(error => {
+                            const row = document.createElement('tr');
+                            
+                            const timeCell = document.createElement('td');
+                            timeCell.textContent = formatTimestamp(error.timestamp);
+                            row.appendChild(timeCell);
+                            
+                            const componentCell = document.createElement('td');
+                            componentCell.textContent = error.component || 'System';
+                            row.appendChild(componentCell);
+                            
+                            const messageCell = document.createElement('td');
+                            messageCell.textContent = error.message;
+                            row.appendChild(messageCell);
+                            
+                            const statusCell = document.createElement('td');
+                            const badge = document.createElement('span');
+                            badge.className = `badge ${error.processed ? 'bg-success' : 'bg-warning'}`;
+                            badge.textContent = error.processed ? 'Processed' : 'Pending';
+                            statusCell.appendChild(badge);
+                            row.appendChild(statusCell);
+                            
+                            errorTableBody.appendChild(row);
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching error history:', error);
+            });
+    }, 10000); // Update every 10 seconds
+</script>
+{% endblock %}

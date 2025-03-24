@@ -1,0 +1,89 @@
+/* Custom styling for beer dispensing system */
+
+/* Custom colors to match theme */
+:root {
+  --beer-amber: #FFA500;
+  --beer-foam: #F5F5DC;
+  --beer-dark: #8B4513;
+}
+
+/* Card hover effect */
+.card {
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Beer icon animation */
+@keyframes bubble {
+  0% { transform: translateY(0); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(-15px); opacity: 0; }
+}
+
+.navbar-brand .fa-beer {
+  animation: bubble 2s infinite;
+  color: var(--beer-amber);
+}
+
+/* Custom button styling */
+.btn-primary {
+  background-color: var(--beer-amber);
+  border-color: var(--beer-amber);
+}
+
+.btn-primary:hover {
+  background-color: var(--beer-dark);
+  border-color: var(--beer-dark);
+}
+
+/* Status indicators */
+.badge {
+  padding: 0.5rem 0.75rem;
+}
+
+/* System state animation */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+#system-state {
+  animation: pulse 2s infinite;
+}
+
+/* Footer styling */
+footer {
+  margin-top: 3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Operation status alert */
+#operation-status {
+  transition: all 0.3s ease;
+}
+
+/* Spinner animation */
+.fa-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .display-5 {
+    font-size: 1.75rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+}

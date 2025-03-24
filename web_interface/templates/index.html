@@ -1,0 +1,135 @@
+{% extends 'layout.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h1 class="display-5 mb-3">
+                    <i class="fas fa-beer text-primary me-2"></i>
+                    Automated Beer Dispensing System
+                </h1>
+                <hr>
+                <p class="lead">Welcome to the control interface for the automated beer dispensing system.</p>
+                
+                {% if error %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    {{ error }}
+                </div>
+                {% else %}
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card bg-dark mb-3">
+                            <div class="card-header">
+                                <h5><i class="fas fa-info-circle me-2"></i> System Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>
+                                    <strong>Current State:</strong> 
+                                    <span id="system-state" class="badge {% if state.state == 'idle' %}bg-success{% elif state.state == 'error' %}bg-danger{% elif state.state == 'maintenance' %}bg-warning{% else %}bg-primary{% endif %}">
+                                        {{ state.state }}
+                                    </span>
+                                </p>
+                                <p><strong>Beer Temperature:</strong> <span id="beer-temp">{{ state.beer_temp|round(1) }}°C</span></p>
+                                <p><strong>Cup Present:</strong> <span id="cup-present">{{ "Yes" if state.sensors.cup_present else "No" }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-dark mb-3">
+                            <div class="card-header">
+                                <h5><i class="fas fa-chart-bar me-2"></i> Statistics</h5>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Cups Dispensed:</strong> <span id="cups-dispensed">{{ state.stats.cups_dispensed }}</span></p>
+                                <p><strong>Beers Poured:</strong> <span id="beers-poured">{{ state.stats.beers_poured }}</span></p>
+                                <p><strong>Total Volume:</strong> <span id="total-volume">{{ state.stats.total_volume_ml|round|int }} ml</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                    <a href="/control" class="btn btn-primary btn-lg">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Control Panel
+                    </a>
+                    <a href="/status" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-search me-2"></i>
+                        Detailed Status
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body text-center">
+                <h4 class="mb-3">System Diagram</h4>
+                <img src="{{ url_for('static', filename='system.svg') }}" alt="System Diagram" class="img-fluid">
+            </div>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5><i class="fas fa-question-circle me-2"></i> Quick Help</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-dark">
+                        <i class="fas fa-beer text-primary me-2"></i>
+                        Use the Control Panel to dispense beer
+                    </li>
+                    <li class="list-group-item bg-dark">
+                        <i class="fas fa-wrench text-warning me-2"></i>
+                        Enter maintenance mode for system adjustments
+                    </li>
+                    <li class="list-group-item bg-dark">
+                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                        Check the Status page for error information
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function onStatusUpdate(data) {
+        // Update beer temperature
+        const beerTemp = document.getElementById('beer-temp');
+        if (beerTemp) {
+            beerTemp.textContent = `${data.beer_temp.toFixed(1)}°C`;
+        }
+        
+        // Update cup present indicator
+        const cupPresent = document.getElementById('cup-present');
+        if (cupPresent) {
+            cupPresent.textContent = data.sensors.cup_present ? 'Yes' : 'No';
+        }
+        
+        // Update statistics
+        const cupsDispensed = document.getElementById('cups-dispensed');
+        if (cupsDispensed) {
+            cupsDispensed.textContent = data.stats.cups_dispensed;
+        }
+        
+        const beersPoured = document.getElementById('beers-poured');
+        if (beersPoured) {
+            beersPoured.textContent = data.stats.beers_poured;
+        }
+        
+        const totalVolume = document.getElementById('total-volume');
+        if (totalVolume) {
+            totalVolume.textContent = `${Math.round(data.stats.total_volume_ml)} ml`;
+        }
+    }
+</script>
+{% endblock %}

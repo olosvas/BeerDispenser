@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beer Dispensing System - {% block title %}Home{% endblock %}</title>
+    
+    <!-- Bootstrap CSS from Replit theme -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-beer me-2"></i>
+                Beer Dispensing System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
+                            <i class="fas fa-home me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/status' %}active{% endif %}" href="/status">
+                            <i class="fas fa-chart-line me-1"></i> Status
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/control' %}active{% endif %}" href="/control">
+                            <i class="fas fa-cogs me-1"></i> Control
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="bg-dark text-light py-3 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col text-center">
+                    <p class="mb-0">
+                        <i class="fas fa-robot me-1"></i> Automated Beer Dispensing System
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-code me-1"></i> Powered by Raspberry Pi
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Common JavaScript for all pages
+        function updateSystemStatus() {
+            fetch('/api/state')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Error fetching state:', data.error);
+                        return;
+                    }
+                    
+                    // Update status indicators if they exist
+                    const stateIndicator = document.getElementById('system-state');
+                    if (stateIndicator) {
+                        stateIndicator.textContent = data.state;
+                        
+                        // Update class based on state
+                        stateIndicator.className = 'badge ';
+                        switch(data.state) {
+                            case 'idle':
+                                stateIndicator.className += 'bg-success';
+                                break;
+                            case 'dispensing_cup':
+                            case 'pouring_beer':
+                            case 'delivering_cup':
+                                stateIndicator.className += 'bg-primary';
+                                break;
+                            case 'error':
+                                stateIndicator.className += 'bg-danger';
+                                break;
+                            case 'maintenance':
+                                stateIndicator.className += 'bg-warning';
+                                break;
+                            default:
+                                stateIndicator.className += 'bg-secondary';
+                        }
+                    }
+                    
+                    // Call page-specific update function if it exists
+                    if (typeof onStatusUpdate === 'function') {
+                        onStatusUpdate(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+        
+        // Update status every 3 seconds if the page has status elements
+        if (document.getElementById('system-state')) {
+            updateSystemStatus();
+            setInterval(updateSystemStatus, 3000);
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

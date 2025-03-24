@@ -1,0 +1,387 @@
+{% extends 'layout.html' %}
+
+{% block title %}Control Panel{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h2><i class="fas fa-cogs me-2"></i> System Control</h2>
+    </div>
+    <div class="card-body">
+        {% if error %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ error }}
+        </div>
+        {% else %}
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary">
+                        <h4 class="text-white mb-0"><i class="fas fa-beer me-2"></i> Beer Dispensing</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <h5>Current System State:</h5>
+                            <div class="d-flex align-items-center">
+                                <span id="system-state" class="badge {% if state.state == 'idle' %}bg-success{% elif state.state == 'error' %}bg-danger{% elif state.state == 'maintenance' %}bg-warning{% else %}bg-primary{% endif %} fs-5 me-3">
+                                    {{ state.state }}
+                                </span>
+                                <div id="state-message" class="fst-italic">
+                                    {% if state.state == 'idle' %}
+                                    System ready for operation
+                                    {% elif state.state == 'dispensing_cup' %}
+                                    Dispensing cup...
+                                    {% elif state.state == 'pouring_beer' %}
+                                    Pouring beer...
+                                    {% elif state.state == 'delivering_cup' %}
+                                    Delivering cup to pickup location...
+                                    {% elif state.state == 'error' %}
+                                    System error - check status page for details
+                                    {% elif state.state == 'maintenance' %}
+                                    System in maintenance mode
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form id="dispense-form" class="mb-4">
+                            <div class="row mb-3">
+                                <label for="volume-input" class="col-sm-3 col-form-label">Volume (ml):</label>
+                                <div class="col-sm-9">
+                                    <input type="number" class="form-control" id="volume-input" value="500" min="100" max="1000" step="50">
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" id="dispense-btn" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-beer me-2"></i>
+                                    Dispense Beer
+                                </button>
+                                <button type="button" id="stop-btn" class="btn btn-danger">
+                                    <i class="fas fa-stop-circle me-2"></i>
+                                    Emergency Stop
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div id="operation-status" class="alert alert-primary d-none">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            <span id="operation-message">Operation in progress...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h4 class="mb-0"><i class="fas fa-wrench me-2"></i> Maintenance Mode</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Maintenance mode allows system adjustments and testing of individual components.</p>
+                        <div class="d-flex justify-content-between">
+                            <button id="enter-maintenance-btn" class="btn btn-warning" {% if state.state == 'maintenance' %}disabled{% endif %}>
+                                <i class="fas fa-tools me-2"></i>
+                                Enter Maintenance Mode
+                            </button>
+                            <button id="exit-maintenance-btn" class="btn btn-success" {% if state.state != 'maintenance' %}disabled{% endif %}>
+                                <i class="fas fa-check-circle me-2"></i>
+                                Exit Maintenance Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-dark">
+                        <h4><i class="fas fa-thermometer-half me-2"></i> System Status</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-dark">
+                                <span><i class="fas fa-thermometer-half text-info me-2"></i> Beer Temperature:</span>
+                                <span id="beer-temp" class="badge bg-info text-dark">{{ state.beer_temp|round(1) }}°C</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-dark">
+                                <span><i class="fas fa-weight text-warning me-2"></i> Cup Weight:</span>
+                                <span id="cup-weight" class="badge bg-warning text-dark">{{ state.sensors.weight|round|int }} g</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-dark">
+                                <span><i class="fas fa-mug-hot text-success me-2"></i> Cup Present:</span>
+                                <span id="cup-present" class="badge {% if state.sensors.cup_present %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ "Yes" if state.sensors.cup_present else "No" }}
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-info text-dark">
+                        <h4 class="mb-0"><i class="fas fa-chart-pie me-2"></i> System Statistics</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-dark">
+                                <span>Cups Dispensed:</span>
+                                <span id="cups-dispensed" class="badge bg-primary">{{ state.stats.cups_dispensed }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-dark">
+                                <span>Beers Poured:</span>
+                                <span id="beers-poured" class="badge bg-primary">{{ state.stats.beers_poured }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-dark">
+                                <span>Total Volume:</span>
+                                <span id="total-volume" class="badge bg-primary">{{ state.stats.total_volume_ml|round|int }} ml</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-dark">
+                                <span>Error Count:</span>
+                                <span id="error-count" class="badge bg-danger">{{ state.stats.errors }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Form submission for beer dispensing
+    const dispenseForm = document.getElementById('dispense-form');
+    const dispenseBtn = document.getElementById('dispense-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const volumeInput = document.getElementById('volume-input');
+    const operationStatus = document.getElementById('operation-status');
+    const operationMessage = document.getElementById('operation-message');
+    const stateMessage = document.getElementById('state-message');
+    
+    if (dispenseForm) {
+        dispenseForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Validate volume
+            const volume = parseInt(volumeInput.value);
+            if (isNaN(volume) || volume < 100 || volume > 1000) {
+                alert('Please enter a valid volume between 100ml and 1000ml');
+                return;
+            }
+            
+            // Show operation status
+            operationStatus.classList.remove('d-none');
+            operationStatus.classList.add('alert-primary');
+            operationStatus.classList.remove('alert-danger');
+            operationMessage.textContent = 'Starting beer dispensing...';
+            
+            // Disable form controls
+            dispenseBtn.disabled = true;
+            volumeInput.disabled = true;
+            
+            // Send dispense request
+            fetch('/api/dispense', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ volume: volume })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    operationMessage.textContent = data.message;
+                    // Keep controls disabled until operation complete
+                } else {
+                    operationStatus.classList.remove('alert-primary');
+                    operationStatus.classList.add('alert-danger');
+                    operationMessage.textContent = 'Error: ' + data.message;
+                    
+                    // Re-enable form controls
+                    dispenseBtn.disabled = false;
+                    volumeInput.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                operationStatus.classList.remove('alert-primary');
+                operationStatus.classList.add('alert-danger');
+                operationMessage.textContent = 'An error occurred while starting the operation';
+                
+                // Re-enable form controls
+                dispenseBtn.disabled = false;
+                volumeInput.disabled = false;
+            });
+        });
+    }
+    
+    // Emergency stop
+    if (stopBtn) {
+        stopBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to stop all operations?')) {
+                fetch('/api/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Operation stopped successfully');
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while stopping the operation');
+                });
+            }
+        });
+    }
+    
+    // Maintenance mode controls
+    const enterMaintenanceBtn = document.getElementById('enter-maintenance-btn');
+    const exitMaintenanceBtn = document.getElementById('exit-maintenance-btn');
+    
+    if (enterMaintenanceBtn) {
+        enterMaintenanceBtn.addEventListener('click', function() {
+            if (confirm('Enter maintenance mode? The system will stop all operations.')) {
+                fetch('/api/maintenance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'enter' })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateSystemStatus();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while entering maintenance mode');
+                });
+            }
+        });
+    }
+    
+    if (exitMaintenanceBtn) {
+        exitMaintenanceBtn.addEventListener('click', function() {
+            fetch('/api/maintenance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'exit' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    updateSystemStatus();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while exiting maintenance mode');
+            });
+        });
+    }
+    
+    function onStatusUpdate(data) {
+        // Update state message
+        if (stateMessage) {
+            switch(data.state) {
+                case 'idle':
+                    stateMessage.textContent = 'System ready for operation';
+                    break;
+                case 'dispensing_cup':
+                    stateMessage.textContent = 'Dispensing cup...';
+                    break;
+                case 'pouring_beer':
+                    stateMessage.textContent = 'Pouring beer...';
+                    break;
+                case 'delivering_cup':
+                    stateMessage.textContent = 'Delivering cup to pickup location...';
+                    break;
+                case 'error':
+                    stateMessage.textContent = 'System error - check status page for details';
+                    break;
+                case 'maintenance':
+                    stateMessage.textContent = 'System in maintenance mode';
+                    break;
+                default:
+                    stateMessage.textContent = '';
+            }
+        }
+        
+        // Enable/disable dispense button based on state
+        if (dispenseBtn) {
+            dispenseBtn.disabled = data.state !== 'idle';
+        }
+        
+        // Enable/disable maintenance buttons based on state
+        if (enterMaintenanceBtn) {
+            enterMaintenanceBtn.disabled = data.state === 'maintenance';
+        }
+        
+        if (exitMaintenanceBtn) {
+            exitMaintenanceBtn.disabled = data.state !== 'maintenance';
+        }
+        
+        // If system returned to idle, re-enable form controls
+        if (data.state === 'idle') {
+            if (dispenseBtn) dispenseBtn.disabled = false;
+            if (volumeInput) volumeInput.disabled = false;
+            if (operationStatus) operationStatus.classList.add('d-none');
+        }
+        
+        // Update sensor displays
+        const beerTemp = document.getElementById('beer-temp');
+        if (beerTemp) {
+            beerTemp.textContent = `${data.beer_temp.toFixed(1)}°C`;
+        }
+        
+        const cupPresent = document.getElementById('cup-present');
+        if (cupPresent) {
+            cupPresent.textContent = data.sensors.cup_present ? 'Yes' : 'No';
+            cupPresent.className = `badge ${data.sensors.cup_present ? 'bg-success' : 'bg-danger'}`;
+        }
+        
+        const cupWeight = document.getElementById('cup-weight');
+        if (cupWeight) {
+            cupWeight.textContent = `${Math.round(data.sensors.weight)} g`;
+        }
+        
+        // Update statistics
+        const cupsDispensed = document.getElementById('cups-dispensed');
+        if (cupsDispensed) {
+            cupsDispensed.textContent = data.stats.cups_dispensed;
+        }
+        
+        const beersPoured = document.getElementById('beers-poured');
+        if (beersPoured) {
+            beersPoured.textContent = data.stats.beers_poured;
+        }
+        
+        const totalVolume = document.getElementById('total-volume');
+        if (totalVolume) {
+            totalVolume.textContent = `${Math.round(data.stats.total_volume_ml)} ml`;
+        }
+        
+        const errorCount = document.getElementById('error-count');
+        if (errorCount) {
+            errorCount.textContent = data.stats.errors;
+        }
+    }
+</script>
+{% endblock %}
