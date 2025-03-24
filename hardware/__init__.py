@@ -15,7 +15,6 @@ if USE_REAL_HARDWARE:
         from hardware.beer_dispenser import BeerDispenser
         from hardware.cup_delivery import CupDelivery
         from hardware.sensors import SystemMonitor, WeightSensor
-        from hardware.id_scanner import IDScanner
         print("Using real hardware implementations")
     except (ImportError, RuntimeError):
         # Fall back to mock implementations
@@ -26,7 +25,6 @@ if USE_REAL_HARDWARE:
             MockSystemMonitor as SystemMonitor,
             MockWeightSensor as WeightSensor
         )
-        from hardware.id_scanner import MockIDScanner as IDScanner
         print("Cannot use real hardware, using mock implementations")
 else:
     # Use mock implementations
@@ -37,5 +35,4 @@ else:
         MockSystemMonitor as SystemMonitor,
         MockWeightSensor as WeightSensor
     )
-    from hardware.id_scanner import MockIDScanner as IDScanner
     print("Using mock hardware implementations for simulation")

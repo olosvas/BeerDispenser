@@ -173,117 +173,38 @@
                     By law, we must verify that you are of legal drinking age before dispensing alcoholic beverages.
                 </div>
                 
-                <!-- Verification methods tabs -->
-                <ul class="nav nav-tabs mt-4 mb-3" id="verification-tabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="scan-tab" data-bs-toggle="tab" data-bs-target="#scan-panel" type="button" role="tab">
-                            <i class="fas fa-camera me-2"></i> Scan ID
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-panel" type="button" role="tab">
-                            <i class="fas fa-keyboard me-2"></i> Manual Entry
-                        </button>
-                    </li>
-                </ul>
-                
-                <div class="tab-content mt-3">
-                    <!-- ID Scanning panel -->
-                    <div class="tab-pane fade show active" id="scan-panel" role="tabpanel">
-                        <p class="mb-3 text-center">Please insert your ID into the scanner below</p>
-                        
-                        <div id="scanner-container" class="text-center mb-4">
-                            <div id="scanner-area" class="position-relative mx-auto" style="width: 300px; height: 200px;">
-                                <div id="scanner-placeholder" class="border border-2 rounded d-flex align-items-center justify-content-center h-100">
-                                    <div>
-                                        <i class="fas fa-id-card fa-3x mb-3 text-muted"></i>
-                                        <p class="mb-0">ID Scanner Ready</p>
-                                    </div>
-                                </div>
-                                
-                                <video id="camera-preview" class="w-100 h-100 d-none border rounded"></video>
-                                <canvas id="photo-canvas" class="w-100 h-100 d-none border rounded position-absolute top-0 start-0"></canvas>
-                                
-                                <div id="scanner-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none">
-                                    <div class="bg-dark bg-opacity-75 text-white p-3 rounded">
-                                        <i class="fas fa-spinner fa-spin me-2"></i> Scanning...
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row mt-3 mb-4">
-                                <div class="col-6">
-                                    <button id="use-camera-btn" class="btn btn-outline-primary w-100">
-                                        <i class="fas fa-camera me-2"></i> Use Camera
-                                    </button>
-                                </div>
-                                <div class="col-6">
-                                    <button id="use-scanner-btn" class="btn btn-outline-info w-100">
-                                        <i class="fas fa-id-card me-2"></i> Use Scanner
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-6">
-                                    <button id="take-photo-btn" class="btn btn-success w-100 d-none">
-                                        <i class="fas fa-camera me-2"></i> Take Photo
-                                    </button>
-                                </div>
-                                <div class="col-6">
-                                    <button id="cancel-camera-btn" class="btn btn-danger w-100 d-none">
-                                        <i class="fas fa-times me-2"></i> Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button id="scan-verify-btn" class="btn btn-primary btn-lg">
-                                <i class="fas fa-check-circle me-2"></i> Verify & Order
-                            </button>
-                            <button type="button" id="back-from-scan-btn" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i> Back
-                            </button>
-                        </div>
+                <form id="verification-form" class="mt-4">
+                    <div class="mb-3">
+                        <label for="fullname" class="form-label">Full Name (as shown on ID)</label>
+                        <input type="text" class="form-control" id="fullname" required>
                     </div>
                     
-                    <!-- Manual verification panel -->
-                    <div class="tab-pane fade" id="manual-panel" role="tabpanel">
-                        <form id="verification-form" class="mt-2">
-                            <div class="mb-3">
-                                <label for="fullname" class="form-label">Full Name (as shown on ID)</label>
-                                <input type="text" class="form-control" id="fullname" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="birthdate" class="form-label">Date of Birth</label>
-                                <input type="date" class="form-control" id="birthdate" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="id-number" class="form-label">ID Number</label>
-                                <input type="text" class="form-control" id="id-number" required>
-                            </div>
-                            
-                            <div class="form-check mb-4">
-                                <input class="form-check-input" type="checkbox" id="age-confirmation" required>
-                                <label class="form-check-label" for="age-confirmation">
-                                    I confirm that I am of legal drinking age and the information provided is accurate.
-                                </label>
-                            </div>
-                            
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-check-circle me-2"></i> Verify & Order
-                                </button>
-                                <button type="button" id="back-to-selection" class="btn btn-outline-secondary">
-                                    <i class="fas fa-arrow-left me-2"></i> Back
-                                </button>
-                            </div>
-                        </form>
+                    <div class="mb-3">
+                        <label for="birthdate" class="form-label">Date of Birth</label>
+                        <input type="date" class="form-control" id="birthdate" required>
                     </div>
-                </div>
+                    
+                    <div class="mb-3">
+                        <label for="id-number" class="form-label">ID Number</label>
+                        <input type="text" class="form-control" id="id-number" required>
+                    </div>
+                    
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="age-confirmation" required>
+                        <label class="form-check-label" for="age-confirmation">
+                            I confirm that I am of legal drinking age and the information provided is accurate.
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-check-circle me-2"></i> Verify & Order
+                        </button>
+                        <button type="button" id="back-to-selection" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Back
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -483,207 +404,6 @@
         });
     });
     
-    // ID Scanner related elements
-    const cameraPreview = document.getElementById('camera-preview');
-    const scannerPlaceholder = document.getElementById('scanner-placeholder');
-    const photoCanvas = document.getElementById('photo-canvas');
-    const scannerOverlay = document.getElementById('scanner-overlay');
-    const useCameraBtn = document.getElementById('use-camera-btn');
-    const useScannerBtn = document.getElementById('use-scanner-btn');
-    const takePhotoBtn = document.getElementById('take-photo-btn');
-    const cancelCameraBtn = document.getElementById('cancel-camera-btn');
-    const scanVerifyBtn = document.getElementById('scan-verify-btn');
-    const backFromScanBtn = document.getElementById('back-from-scan-btn');
-    
-    let stream = null;
-    let cameraActive = false;
-    
-    // Use camera button
-    useCameraBtn.addEventListener('click', function() {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            // Request camera access
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(mediaStream) {
-                    stream = mediaStream;
-                    cameraActive = true;
-                    
-                    // Show video stream
-                    cameraPreview.srcObject = stream;
-                    cameraPreview.onloadedmetadata = function(e) {
-                        cameraPreview.play();
-                    };
-                    
-                    // Show video and buttons, hide placeholder
-                    scannerPlaceholder.classList.add('d-none');
-                    cameraPreview.classList.remove('d-none');
-                    takePhotoBtn.classList.remove('d-none');
-                    cancelCameraBtn.classList.remove('d-none');
-                    useCameraBtn.classList.add('d-none');
-                    useScannerBtn.classList.add('d-none');
-                })
-                .catch(function(err) {
-                    console.error("Error accessing camera: ", err);
-                    alert("Could not access camera. Please make sure camera permissions are enabled.");
-                });
-        } else {
-            alert("Sorry, camera access is not supported by your browser. Try updating or using a different browser.");
-        }
-    });
-    
-    // Cancel camera button
-    cancelCameraBtn.addEventListener('click', function() {
-        stopCamera();
-    });
-    
-    // Take photo button
-    takePhotoBtn.addEventListener('click', function() {
-        if (cameraActive) {
-            // Set canvas dimensions to match video
-            photoCanvas.width = cameraPreview.videoWidth;
-            photoCanvas.height = cameraPreview.videoHeight;
-            
-            // Draw video frame to canvas
-            const context = photoCanvas.getContext('2d');
-            context.drawImage(cameraPreview, 0, 0, photoCanvas.width, photoCanvas.height);
-            
-            // Show scanning overlay
-            scannerOverlay.classList.remove('d-none');
-            
-            // Convert canvas to base64 image
-            const imageData = photoCanvas.toDataURL('image/jpeg');
-            
-            // Hide video and show canvas
-            cameraPreview.classList.add('d-none');
-            photoCanvas.classList.remove('d-none');
-            
-            // Send image to server for processing
-            fetch('/api/verify_age', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    method: 'scan',
-                    image_data: imageData
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Hide scanning overlay
-                scannerOverlay.classList.add('d-none');
-                
-                if (data.status === 'success' && data.verified) {
-                    // Age verification successful
-                    alert("Age verification successful! ID Type: " + data.id_type + ", Age: " + data.age);
-                    
-                    // Stop the camera
-                    stopCamera();
-                    
-                    // Start the beer dispensing process
-                    ageVerification.classList.add('d-none');
-                    processingOrder.classList.remove('d-none');
-                    
-                    // Set beer size display
-                    beerSizeDisplay.textContent = selectedSize + 'ml';
-                    
-                    // Start dispensing
-                    startDispensing();
-                } else {
-                    // Verification failed
-                    alert(data.message || "Age verification failed. Please try again or use manual verification.");
-                    
-                    // Reset camera UI
-                    resetCameraUI();
-                }
-            })
-            .catch(error => {
-                console.error('Error during ID scan verification:', error);
-                scannerOverlay.classList.add('d-none');
-                alert('An error occurred during verification. Please try again or use manual verification.');
-                
-                // Reset camera UI
-                resetCameraUI();
-            });
-        }
-    });
-    
-    // Function to stop camera stream
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-            cameraActive = false;
-        }
-        
-        resetCameraUI();
-    }
-    
-    // Reset camera UI
-    function resetCameraUI() {
-        // Hide video and canvas
-        cameraPreview.classList.add('d-none');
-        photoCanvas.classList.add('d-none');
-        scannerOverlay.classList.add('d-none');
-        takePhotoBtn.classList.add('d-none');
-        cancelCameraBtn.classList.add('d-none');
-        
-        // Show buttons and placeholder
-        scannerPlaceholder.classList.remove('d-none');
-        useCameraBtn.classList.remove('d-none');
-        useScannerBtn.classList.remove('d-none');
-    }
-    
-    // Scan and verify button
-    scanVerifyBtn.addEventListener('click', function() {
-        // When using the mock scanner, we'll simulate a successful scan
-        const mockIdData = {
-            fullname: "Josef Novák",
-            birthdate: "1980-05-15",
-            id_number: "AB123456789"
-        };
-        
-        // Send verification request to server
-        fetch('/api/verify_age', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                method: 'manual',
-                ...mockIdData
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' && data.verified) {
-                // Age verification successful
-                ageVerification.classList.add('d-none');
-                processingOrder.classList.remove('d-none');
-                
-                // Set beer size display
-                beerSizeDisplay.textContent = selectedSize + 'ml';
-                
-                // Start dispensing
-                startDispensing();
-            } else {
-                // Verification failed
-                alert(data.message || 'Age verification failed. Please try again.');
-            }
-        })
-        .catch(error => {
-            console.error('Error during verification:', error);
-            alert('An error occurred during verification. Please try again.');
-        });
-    });
-    
-    // Back from scan button
-    backFromScanBtn.addEventListener('click', function() {
-        stopCamera();
-        
-        // Show manual verification panel
-        document.getElementById('manual-tab').click();
-    });
-    
     // Start a new order
     newOrderBtn.addEventListener('click', function() {
         // Reset form
@@ -705,9 +425,6 @@
         // Reset beer animation
         beer.style.height = '0%';
         foam.style.bottom = '100%';
-        
-        // Reset ID scanner
-        stopCamera();
         
         // Show beer selection
         beerReady.classList.add('d-none');

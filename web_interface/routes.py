@@ -186,119 +186,45 @@ def api_verify_age():
     # Get verification data
     try:
         data = request.json
+        fullname = data.get('fullname')
+        birthdate = data.get('birthdate')
+        id_number = data.get('id_number')
         
-        # Check if this is a manual verification or scan verification
-        verification_method = data.get('method', 'manual')
+        # Validate required fields
+        if not all([fullname, birthdate, id_number]):
+            return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
         
-        if verification_method == 'manual':
-            fullname = data.get('fullname')
-            birthdate = data.get('birthdate')
-            id_number = data.get('id_number')
+        # Parse birthdate
+        from datetime import datetime
+        try:
+            birth_date = datetime.strptime(birthdate, '%Y-%m-%d')
+            today = datetime.now()
+            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
             
-            # Validate required fields
-            if not all([fullname, birthdate, id_number]):
-                return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
-            
-            # Parse birthdate
-            from datetime import datetime
-            try:
-                birth_date = datetime.strptime(birthdate, '%Y-%m-%d')
-                today = datetime.now()
-                age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-                
-                # Check legal drinking age (21)
-                if age < 21:
-                    return jsonify({
-                        'status': 'error', 
-                        'message': 'You must be at least 21 years old to order beer.',
-                        'verified': False
-                    }), 403
-                    
-                # Store verification in session
-                session['age_verified'] = True
-                session['fullname'] = fullname
-                
-                # In a real system, we'd log the verification for legal purposes
-                logger.info(f"Age verification successful for {fullname} (ID: {id_number}, Age: {age})")
-                
-                # Update verification stats
-                with _controller.stats_lock:
-                    _controller.stats['verifications'] += 1
-                
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Age verification successful',
-                    'verified': True,
-                    'age': age
-                })
-                
-            except ValueError:
-                return jsonify({'status': 'error', 'message': 'Invalid date format'}), 400
-                
-        elif verification_method == 'scan':
-            # Get the image data (base64 encoded)
-            image_data = data.get('image_data')
-            if not image_data:
-                return jsonify({'status': 'error', 'message': 'No image data provided'}), 400
-            
-            # Decode base64 image
-            import base64
-            try:
-                # Strip out the data URL header if present
-                if 'base64,' in image_data:
-                    image_data = image_data.split('base64,')[1]
-                
-                image_bytes = base64.b64decode(image_data)
-                
-                # Scan the ID
-                id_data = _controller.id_scanner.scan_id(image_data=image_bytes)
-                
-                if not id_data:
-                    return jsonify({
-                        'status': 'error',
-                        'message': 'Could not scan ID. Please try again or use manual verification.',
-                        'verified': False
-                    }), 400
-                
-                # Verify age from ID data
-                verification_result = _controller.id_scanner.verify_age(id_data)
-                
-                if verification_result['verified']:
-                    # Store verification in session
-                    session['age_verified'] = True
-                    session['id_type'] = id_data.get('id_type', 'Unknown ID')
-                    
-                    # Update verification stats
-                    with _controller.stats_lock:
-                        _controller.stats['verifications'] += 1
-                    
-                    # Log successful verification
-                    logger.info(f"Age verification successful via scan: {id_data.get('id_type')}, Age: {verification_result.get('age')}")
-                    
-                    return jsonify({
-                        'status': 'success',
-                        'message': 'Age verification successful',
-                        'verified': True,
-                        'age': verification_result.get('age'),
-                        'id_type': id_data.get('id_type', 'Unknown ID')
-                    })
-                else:
-                    return jsonify({
-                        'status': 'error',
-                        'message': verification_result.get('message', 'Age verification failed'),
-                        'verified': False
-                    }), 403
-            
-            except Exception as e:
-                logger.error(f"Error processing ID scan: {e}")
+            # Check legal drinking age (21)
+            if age < 21:
                 return jsonify({
                     'status': 'error', 
-                    'message': 'Error processing ID scan. Please try again or use manual verification.',
+                    'message': 'You must be at least 21 years old to order beer.',
                     'verified': False
-                }), 500
-        
-        else:
-            return jsonify({'status': 'error', 'message': 'Invalid verification method'}), 400
+                }), 403
+                
+            # Store verification in session
+            session['age_verified'] = True
+            session['fullname'] = fullname
+            
+            # In a real system, we'd log the verification for legal purposes
+            logger.info(f"Age verification successful for {fullname} (ID: {id_number}, Age: {age})")
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Age verification successful',
+                'verified': True,
+                'age': age
+            })
+            
+        except ValueError:
+            return jsonify({'status': 'error', 'message': 'Invalid date format'}), 400
             
     except Exception as e:
         logger.error(f"Error during age verification: {e}")
