@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const webcamResultMessage = document.getElementById('webcam-result-message');
     const webcamProceedBtn = document.getElementById('webcam-proceed-btn');
     const webcamRetryBtn = document.getElementById('webcam-retry-btn');
+    const webcamControls = document.getElementById('webcam-controls');
     
     // Processing, error, and result elements
     const verificationProcessing = document.getElementById('verification-processing');
@@ -79,39 +80,43 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Beverage type selection
     beverageTypeOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            // Remove 'selected' class from all options
-            beverageTypeOptions.forEach(opt => opt.classList.remove('selected'));
-            
-            // Add 'selected' class to the clicked option
-            this.classList.add('selected');
-            
-            // Store the selected beverage type
-            selectedBeverageType = this.dataset.type;
-            
-            // Update the display
-            beverageTypeDisplay.textContent = selectedBeverageType.charAt(0).toUpperCase() + selectedBeverageType.slice(1);
-            
-            // Enable the continue button
-            continueTypeBtn.disabled = false;
-        });
+        if (option) {
+            option.addEventListener('click', function() {
+                // Remove 'selected' class from all options
+                beverageTypeOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add 'selected' class to the clicked option
+                this.classList.add('selected');
+                
+                // Store the selected beverage type
+                selectedBeverageType = this.dataset.type;
+                
+                // Update the display
+                beverageTypeDisplay.textContent = selectedBeverageType.charAt(0).toUpperCase() + selectedBeverageType.slice(1);
+                
+                // Enable the continue button
+                continueTypeBtn.disabled = false;
+            });
+        }
     });
     
     // Beverage size selection
     beverageSizeOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            // Remove 'selected' class from all options
-            beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
-            
-            // Add 'selected' class to the clicked option
-            this.classList.add('selected');
-            
-            // Store the selected size
-            selectedSize = this.dataset.size;
-            
-            // Enable the continue button
-            continueSizeBtn.disabled = false;
-        });
+        if (option) {
+            option.addEventListener('click', function() {
+                // Remove 'selected' class from all options
+                beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Add 'selected' class to the clicked option
+                this.classList.add('selected');
+                
+                // Store the selected size
+                selectedSize = this.dataset.size;
+                
+                // Enable the continue button
+                continueSizeBtn.disabled = false;
+            });
+        }
     });
     
     // Continue Type Button - Move to size selection
@@ -285,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
         webcamRetryBtn.addEventListener('click', function() {
             webcamResult.classList.add('d-none');
             webcamProceedBtn.classList.add('d-none');
-            webcamControls.classList.remove('d-none');
+            if (webcamControls) webcamControls.classList.remove('d-none');
             startWebcam();
         });
     }
@@ -319,25 +324,25 @@ document.addEventListener('DOMContentLoaded', function() {
         stepDispensing.classList.add('active');
         
         // Update status message
-        statusMessage.textContent = 'Preparing your beverage...';
+        if (statusMessage) statusMessage.textContent = 'Preparing your beverage...';
         
         // Add class based on beverage type
-        liquidEl.classList.add(selectedBeverageType);
+        if (liquidEl) liquidEl.classList.add(selectedBeverageType);
         
         // Animate dispensing
         setTimeout(() => {
             // Animate cup filling
-            liquidEl.style.height = '80%';
-            foamEl.style.bottom = '80%';
+            if (liquidEl) liquidEl.style.height = '80%';
+            if (foamEl) foamEl.style.bottom = '80%';
             
             // Update status
-            statusMessage.textContent = `Pouring ${selectedBeverageType}...`;
+            if (statusMessage) statusMessage.textContent = `Pouring ${selectedBeverageType}...`;
             
             // Simulate dispensing process
             setTimeout(() => {
                 // Show complete
                 dispensing.classList.add('d-none');
-                orderComplete.classList.remove('d-none');
+                if (orderComplete) orderComplete.classList.remove('d-none');
                 stepDispensing.classList.remove('active');
                 stepDispensing.classList.add('completed');
                 stepPickup.classList.add('active');
@@ -368,26 +373,30 @@ document.addEventListener('DOMContentLoaded', function() {
     function startWebcam() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             // Hide placeholder, show video
-            webcamPlaceholder.style.display = 'none';
-            webcamVideo.style.display = 'block';
+            if (webcamPlaceholder) webcamPlaceholder.style.display = 'none';
+            if (webcamVideo) webcamVideo.style.display = 'block';
             
             // Access webcam
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(function(stream) {
                     webcamStream = stream;
-                    webcamVideo.srcObject = stream;
-                    webcamCaptureBtn.disabled = false;
-                    webcamStartBtn.disabled = true;
+                    if (webcamVideo) webcamVideo.srcObject = stream;
+                    if (webcamCaptureBtn) webcamCaptureBtn.disabled = false;
+                    if (webcamStartBtn) webcamStartBtn.disabled = true;
                 })
                 .catch(function(error) {
                     console.error('Error accessing webcam:', error);
-                    webcamPlaceholder.innerHTML = '<i class="fas fa-exclamation-circle fa-3x text-danger mb-2"></i><span class="text-danger">Could not access camera</span>';
-                    webcamPlaceholder.style.display = 'flex';
+                    if (webcamPlaceholder) {
+                        webcamPlaceholder.innerHTML = '<i class="fas fa-exclamation-circle fa-3x text-danger mb-2"></i><span class="text-danger">Could not access camera</span>';
+                        webcamPlaceholder.style.display = 'flex';
+                    }
                 });
         } else {
             console.error('getUserMedia not supported');
-            webcamPlaceholder.innerHTML = '<i class="fas fa-exclamation-circle fa-3x text-danger mb-2"></i><span class="text-danger">Camera not supported in this browser</span>';
-            webcamPlaceholder.style.display = 'flex';
+            if (webcamPlaceholder) {
+                webcamPlaceholder.innerHTML = '<i class="fas fa-exclamation-circle fa-3x text-danger mb-2"></i><span class="text-danger">Camera not supported in this browser</span>';
+                webcamPlaceholder.style.display = 'flex';
+            }
         }
     }
     
@@ -396,18 +405,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (webcamStream) {
             webcamStream.getTracks().forEach(track => track.stop());
             webcamStream = null;
-            webcamVideo.srcObject = null;
-            webcamVideo.style.display = 'none';
-            webcamCanvas.style.display = 'none';
-            webcamPlaceholder.style.display = 'flex';
-            webcamCaptureBtn.disabled = true;
-            webcamStartBtn.disabled = false;
+            if (webcamVideo) {
+                webcamVideo.srcObject = null;
+                webcamVideo.style.display = 'none';
+            }
+            if (webcamCanvas) webcamCanvas.style.display = 'none';
+            if (webcamPlaceholder) webcamPlaceholder.style.display = 'flex';
+            if (webcamCaptureBtn) webcamCaptureBtn.disabled = true;
+            if (webcamStartBtn) webcamStartBtn.disabled = false;
         }
     }
     
     // Function to capture image
     function captureImage() {
-        if (webcamStream) {
+        if (webcamStream && webcamVideo && webcamCanvas) {
             // Show canvas, hide video
             webcamCanvas.style.display = 'block';
             webcamVideo.style.display = 'none';
@@ -419,8 +430,8 @@ document.addEventListener('DOMContentLoaded', function() {
             context.drawImage(webcamVideo, 0, 0, webcamCanvas.width, webcamCanvas.height);
             
             // Show processing
-            webcamControls.classList.add('d-none');
-            verificationProcessing.classList.remove('d-none');
+            if (webcamControls) webcamControls.classList.add('d-none');
+            if (verificationProcessing) verificationProcessing.classList.remove('d-none');
             
             // Get image data
             const imageData = webcamCanvas.toDataURL('image/jpeg');
@@ -438,19 +449,19 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                verificationProcessing.classList.add('d-none');
-                webcamResult.classList.remove('d-none');
+                if (verificationProcessing) verificationProcessing.classList.add('d-none');
+                if (webcamResult) webcamResult.classList.remove('d-none');
                 
                 if (data.verified) {
                     // Success - show result and enable proceed button
-                    webcamResultMessage.textContent = `Verification successful. Estimated age: ${data.estimated_age} years`;
-                    webcamResult.querySelector('.alert').className = 'alert alert-success';
-                    webcamProceedBtn.classList.remove('d-none');
+                    if (webcamResultMessage) webcamResultMessage.textContent = `Verification successful. Estimated age: ${data.estimated_age} years`;
+                    if (webcamResult && webcamResult.querySelector('.alert')) webcamResult.querySelector('.alert').className = 'alert alert-success';
+                    if (webcamProceedBtn) webcamProceedBtn.classList.remove('d-none');
                 } else {
                     // Failed - show error and retry option
-                    webcamResultMessage.textContent = data.message || 'Age verification failed';
-                    webcamResult.querySelector('.alert').className = 'alert alert-danger';
-                    webcamProceedBtn.classList.add('d-none');
+                    if (webcamResultMessage) webcamResultMessage.textContent = data.message || 'Age verification failed';
+                    if (webcamResult && webcamResult.querySelector('.alert')) webcamResult.querySelector('.alert').className = 'alert alert-danger';
+                    if (webcamProceedBtn) webcamProceedBtn.classList.add('d-none');
                 }
                 
                 // Stop webcam
@@ -458,11 +469,11 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error verifying age:', error);
-                verificationProcessing.classList.add('d-none');
-                webcamResult.classList.remove('d-none');
-                webcamResultMessage.textContent = 'Error processing verification';
-                webcamResult.querySelector('.alert').className = 'alert alert-danger';
-                webcamProceedBtn.classList.add('d-none');
+                if (verificationProcessing) verificationProcessing.classList.add('d-none');
+                if (webcamResult) webcamResult.classList.remove('d-none');
+                if (webcamResultMessage) webcamResultMessage.textContent = 'Error processing verification';
+                if (webcamResult && webcamResult.querySelector('.alert')) webcamResult.querySelector('.alert').className = 'alert alert-danger';
+                if (webcamProceedBtn) webcamProceedBtn.classList.add('d-none');
             });
         }
     }
@@ -479,17 +490,17 @@ document.addEventListener('DOMContentLoaded', function() {
         beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
         
         // Reset buttons
-        continueTypeBtn.disabled = true;
-        continueSizeBtn.disabled = true;
+        if (continueTypeBtn) continueTypeBtn.disabled = true;
+        if (continueSizeBtn) continueSizeBtn.disabled = true;
         
         // Reset step indicators
-        stepSelection.classList.remove('completed');
-        stepVerification.classList.remove('active', 'completed');
-        stepDispensing.classList.remove('active', 'completed');
-        stepPickup.classList.remove('active');
+        if (stepSelection) stepSelection.classList.remove('completed');
+        if (stepVerification) stepVerification.classList.remove('active', 'completed');
+        if (stepDispensing) stepDispensing.classList.remove('active', 'completed');
+        if (stepPickup) stepPickup.classList.remove('active');
         
         // Reset displays
-        beverageTypeDisplay.textContent = 'None';
+        if (beverageTypeDisplay) beverageTypeDisplay.textContent = 'None';
         
         // Reset form
         if (verificationForm) {
@@ -499,25 +510,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Reset webcam state
         stopWebcam();
-        webcamResult.classList.add('d-none');
+        if (webcamResult) webcamResult.classList.add('d-none');
         
         // Reset liquid animation
-        liquidEl.style.height = '0%';
-        foamEl.style.bottom = '0%';
-        liquidEl.classList.remove('beer', 'kofola', 'birel');
+        if (liquidEl) {
+            liquidEl.style.height = '0%';
+            liquidEl.classList.remove('beer', 'kofola', 'birel');
+        }
+        if (foamEl) foamEl.style.bottom = '0%';
         
         // Show initial screen, hide others
-        beverageTypeSelection.classList.remove('d-none');
-        beverageSizeSelection.classList.add('d-none');
-        ageVerification.classList.add('d-none');
-        dispensing.classList.add('d-none');
-        orderComplete.classList.add('d-none');
-        progressContainer.classList.add('d-none');
-        verificationMethods.classList.remove('d-none');
-        verificationForm.classList.add('d-none');
-        webcamVerification.classList.add('d-none');
-        verificationProcessing.classList.add('d-none');
-        verificationError.classList.add('d-none');
+        if (beverageTypeSelection) beverageTypeSelection.classList.remove('d-none');
+        if (beverageSizeSelection) beverageSizeSelection.classList.add('d-none');
+        if (ageVerification) ageVerification.classList.add('d-none');
+        if (dispensing) dispensing.classList.add('d-none');
+        if (orderComplete) orderComplete.classList.add('d-none');
+        if (progressContainer) progressContainer.classList.add('d-none');
+        if (verificationMethods) verificationMethods.classList.remove('d-none');
+        if (verificationForm) verificationForm.classList.add('d-none');
+        if (webcamVerification) webcamVerification.classList.add('d-none');
+        if (verificationProcessing) verificationProcessing.classList.add('d-none');
+        if (verificationError) verificationError.classList.add('d-none');
     }
     
     // New Order Button - Reset to start
