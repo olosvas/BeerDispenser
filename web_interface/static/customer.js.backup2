@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!ageVerificationScreen.classList.contains('d-none')) return 'age-verification';
         if (!dispensingScreen.classList.contains('d-none')) return 'dispensing-screen';
         if (!orderCompleteScreen.classList.contains('d-none')) return 'order-complete-screen';
-        return ''; // Default empty
+        return 'beverage-type-selection'; // Default
     }
     
     // Restore UI state based on server data
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Show the appropriate screen based on screenName
+        // Show the appropriate screen
         if (screenName && screenName !== '') {
             hideAllScreens();
             const screenElement = document.getElementById(screenName);
@@ -777,7 +777,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Enable proceed button
                     if (webcamProceedBtn) {
                         webcamProceedBtn.disabled = false;
-                        webcamProceedBtn.classList.remove('d-none');
                     }
                 } else {
                     verificationStatus.textContent = 'Verification Failed';
@@ -866,29 +865,6 @@ function startDispensing() {
                 primarySize = 500;
             }
         }
-    }
-    
-    // Animate the liquid in cup
-    const liquidElement = document.getElementById('dispensing-liquid');
-    const foamElement = document.getElementById('dispensing-foam');
-    
-    if (liquidElement) {
-        // Set appropriate color class
-        liquidElement.className = `liquid ${primaryBeverageType}`;
-        
-        // Animate filling
-        setTimeout(() => {
-            if (primaryBeverageType === 'beer') {
-                liquidElement.style.height = '75%';
-                
-                // Show foam for beer
-                if (foamElement) {
-                    foamElement.style.bottom = '75%';
-                }
-            } else {
-                liquidElement.style.height = '90%';
-            }
-        }, 500);
     }
     
     // Call the API to start dispensing
