@@ -325,3 +325,163 @@ def verify_age():
             "success": False,
             "message": "Neplatná metóda overenia." if session.get('language') == 'sk' else "Invalid verification method."
         })
+
+
+@app.route('/api/dispensing_status', methods=['GET'])
+def api_dispensing_status():
+    """Return the current dispensing status for frontend monitoring."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    # Get the current system state
+    system_state = _controller.get_system_state()
+    
+    # For demonstration purposes, we'll simulate a progress
+    # In a real system, this would be based on actual dispensing progress
+    import random
+    import time
+    
+    # Generate a timestamp-based seed to have consistent progress for short time periods
+    seed = int(time.time() / 3)  # Change every 3 seconds
+    random.seed(seed)
+    
+    # Get the system state
+    state = system_state['state']
+    
+    # Convert system state to a client-friendly format
+    if state == 'dispensing':
+        # Calculate a progress value that increments over time
+        progress = (int(time.time()) % 15) * 6  # 0-90% over 15 seconds
+        
+        if progress < 30:
+            message = "Dispensing cup..."
+        elif progress < 60:
+            message = "Pouring beverage..."
+        elif progress < 90:
+            message = "Finishing up..."
+        else:
+            message = "Dispensing complete."
+            progress = 100
+            state = 'complete'
+        
+        return jsonify({
+            "status": state,
+            "progress": progress,
+            "message": message
+        })
+    elif state == 'error':
+        return jsonify({
+            "status": "error",
+            "progress": 0,
+            "message": system_state.get('error_message', 'An error occurred during dispensing.')
+        })
+    else:
+        # Simulate dispensing initialization
+        return jsonify({
+            "status": "initializing",
+            "progress": 10,
+            "message": "Preparing to dispense beverage..."
+        })
+
+
+@app.route('/api/dispense', methods=['POST'])
+def api_dispense():
+    """Handle dispense requests from the JavaScript frontend."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    # Get dispense parameters from JSON
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "No data provided"}), 400
+    
+    beverage_type = data.get('beverage_type', 'beer')
+    size_ml = data.get('size_ml')
+    
+    # Convert size to float if it's a string
+    if isinstance(size_ml, str):
+        try:
+            size_ml = float(size_ml)
+        except ValueError:
+            # If conversion fails, use default
+            size_ml = None
+    
+    # Check if this beverage requires age verification
+    from config import BEVERAGE_POUR_SETTINGS
+    beverage_settings = BEVERAGE_POUR_SETTINGS.get(beverage_type, BEVERAGE_POUR_SETTINGS['beer'])
+    requires_age_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)
+    
+    # If it's beer or requires verification, inform the frontend
+    if requires_age_verification:
+        return jsonify({
+            "success": True,
+            "requires_age_verification": True,
+            "message": "Age verification required before dispensing."
+        })
+    
+    # Try to start dispensing
+    success = _controller.dispense_beer(volume_ml=size_ml, beverage_type=beverage_type)
+    
+    if success:
+        return jsonify({
+            "success": True,
+            "requires_age_verification": False,
+            "status": "dispensing"
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "message": "Failed to start dispensing"
+        }), 400
+
+
+@app.route('/api/verify_age', methods=['POST'])
+def api_verify_age():
+    """Handle age verification requests from the JavaScript frontend."""
+    from age_verification.age_detector import verify_age_for_beverage, detect_age_from_image
+    import base64
+    
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    # Get JSON data from request
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "No data provided"}), 400
+    
+    # Extract image and beverage type from JSON
+    image_data_url = data.get('image')
+    beverage_type = data.get('beverage_type', 'beer')
+    
+    if not image_data_url:
+        return jsonify({"success": False, "message": "No image provided"}), 400
+    
+    try:
+        # Extract base64 data from data URL
+        # Format: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...'
+        image_base64 = image_data_url.split(',')[1]
+        image_bytes = base64.b64decode(image_base64)
+        
+        # Verify age using the bytes directly
+        result = verify_age_for_beverage(image_bytes, beverage_type, image_is_path=False)
+        
+        logger.info(f"Age verification result: {result}")
+        
+        # Get verification status from the result
+        verified = result.get('verified', False)
+        
+        return jsonify({
+            "success": True,
+            "verified": verified,
+            "is_adult": verified,  # is_adult should match verified for consistent UI feedback
+            "message": result.get('message', 'Age verification complete.'),
+            "estimated_age": result.get('estimated_age', 0)
+        })
+        
+    except Exception as e:
+        logger.error(f"API age verification error: {str(e)}")
+        return jsonify({
+            "success": False,
+            "is_adult": False,
+            "message": "Error during age verification: " + str(e)
+        }), 500

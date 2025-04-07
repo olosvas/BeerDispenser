@@ -774,26 +774,7 @@ function captureWebcamImage() {
         resultMessage.textContent = 'Verifying age...';
     }
     
-    // For demonstration, let's simulate a verification process with a timeout
-    setTimeout(() => {
-        // In a real app, you'd send the image to your server for verification
-        // For this demo, we'll simulate success
-        if (resultMessage) {
-            resultMessage.textContent = 'Age verification successful. You are old enough to purchase alcoholic beverages.';
-        }
-        
-        // Show proceed button
-        const proceedBtn = document.getElementById('webcam-proceed-btn');
-        if (proceedBtn) {
-            proceedBtn.classList.remove('d-none');
-        }
-        
-        // Stop the webcam to save resources
-        stopWebcam();
-    }, 2000);
-    
-    // In a real application, you would send the image data to the server for age verification
-    /*
+    // Send the image data to the server for age verification
     fetch('/api/verify_age', {
         method: 'POST',
         headers: {
@@ -822,11 +803,13 @@ function captureWebcamImage() {
                 resultMessage.textContent = data.message || 'Age verification failed. You must be at least 18 years old.';
             }
         }
+        
+        // Stop the webcam to save resources
+        stopWebcam();
     })
     .catch(error => {
         showWebcamError('Error verifying age: ' + error.message);
     });
-    */
 }
 
 function resetWebcam() {
