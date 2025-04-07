@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const paymentVat = document.getElementById('payment-vat');
     
     // State variables
-    let selectedBeverage = 'beer'; // Default selection
+    let selectedBeverage = null; // Start with no selection
     let selectedSize = 500; // Default selection (500ml)
     let currentQuantity = 1;
     let cartItems = [];
@@ -58,6 +58,15 @@ document.addEventListener('DOMContentLoaded', function() {
      * Initialize the UI components and state
      */
     function initializeUI() {
+        // Clear any selected state initially
+        beverageTypeOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        beverageSizeOptions.forEach(option => {
+            option.classList.remove('selected');
+        });
+        
         restoreState();
     }
     
@@ -935,8 +944,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                image: base64Image,
-                beverages: beverageTypes
+                image_data: imageDataURL,
+                beverage_type: beverageTypes[0] || "beer"
             })
         })
         .then(response => response.json())
