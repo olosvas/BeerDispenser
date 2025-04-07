@@ -2,11 +2,11 @@
     <div class="float-end mb-3">
         <!-- Current language: {{ language }} -->
         {% if language == 'sk' %}
-        <a href="?lang=en&keepProgress=true" class="btn btn-outline-primary">
+        <a href="?lang=en&keepProgress=true" class="btn btn-outline-primary" id="language-switch-btn">
             <img src="/static/flags/en.svg" width="36" height="24" alt="English" title="Switch to English">
         </a>
         {% else %}
-        <a href="?lang=sk&keepProgress=true" class="btn btn-outline-primary">
+        <a href="?lang=sk&keepProgress=true" class="btn btn-outline-primary" id="language-switch-btn">
             <img src="/static/flags/sk.svg" width="36" height="24" alt="Slovenčina" title="Prepnúť na slovenčinu">
         </a>
         {% endif %}

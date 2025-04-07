@@ -702,10 +702,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (initialScreen) {
         restoreUIState(initialScreen);
-    }
-    
     // Add event listener for language switch to save state
-    document.getElementById('language-switch-btn').addEventListener('click', function() {
-        saveStateToServer();
-    });
+    const languageSwitchBtn = document.getElementById("language-switch-btn");
+    if (languageSwitchBtn) {
+        languageSwitchBtn.addEventListener("click", function() {
+            saveStateToServer();
+        });
+    }
+    const languageSwitchBtn = document.getElementById('language-switch-btn');
+    if (languageSwitchBtn) {
+        languageSwitchBtn.addEventListener('click', function() {
+            saveStateToServer();
+        });
+    }
 });
