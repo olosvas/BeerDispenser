@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     // State
     let selectedBeverageType = null;
+    let selectedSize = null;
+    let orderInProgress = false;
     // State Management functions
     let cartItems = [];
     
@@ -29,9 +31,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'beverage-type';
         } else if (beverageSizeSelection && !beverageSizeSelection.classList.contains('d-none')) {
             return 'beverage-size';
-        } else if (document.getElementById('shopping-cart') && !document.getElementById('shopping-cart').classList.contains('d-none')) {
+        } else if (shoppingCart && !shoppingCart.classList.contains('d-none')) {
             return 'shopping-cart';
-        } else if (document.getElementById('payment-screen') && !document.getElementById('payment-screen').classList.contains('d-none')) {
+        } else if (paymentScreen && !paymentScreen.classList.contains('d-none')) {
             return 'payment';
         } else if (ageVerification && !ageVerification.classList.contains('d-none')) {
             return 'age-verification';
@@ -45,8 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to restore UI based on saved state
     function restoreUIState(screenName) {
-        console.log('Restoring UI state to:', screenName);
-        
         // Hide all screens first
         hideAllScreens();
         
@@ -59,22 +59,16 @@ document.addEventListener('DOMContentLoaded', function() {
             progressContainer.classList.remove('d-none');
             stepSelection.classList.add('active');
         } else if (screenName === 'shopping-cart') {
-            const shoppingCart = document.getElementById('shopping-cart');
-            if (shoppingCart) {
-                shoppingCart.classList.remove('d-none');
-                progressContainer.classList.remove('d-none');
-                stepSelection.classList.add('completed');
-                document.getElementById('step-cart').classList.add('active');
-            }
+            shoppingCart.classList.remove('d-none');
+            progressContainer.classList.remove('d-none');
+            stepSelection.classList.add('completed');
+            stepCart.classList.add('active');
         } else if (screenName === 'payment') {
-            const paymentScreen = document.getElementById('payment-screen');
-            if (paymentScreen) {
-                paymentScreen.classList.remove('d-none');
-                progressContainer.classList.remove('d-none');
-                stepSelection.classList.add('completed');
-                document.getElementById('step-cart').classList.add('completed');
-                document.getElementById('step-payment').classList.add('active');
-            }
+            paymentScreen.classList.remove('d-none');
+            progressContainer.classList.remove('d-none');
+            stepSelection.classList.add('completed');
+            stepCart.classList.add('completed');
+            stepPayment.classList.add('active');
         } else if (screenName === 'age-verification') {
             ageVerification.classList.remove('d-none');
             progressContainer.classList.remove('d-none');
@@ -86,28 +80,6 @@ document.addEventListener('DOMContentLoaded', function() {
             stepSelection.classList.add('completed');
             stepVerification.classList.add('completed');
             stepDispensing.classList.add('active');
-        } else if (screenName === 'complete') {
-            ready.classList.remove('d-none');
-            progressContainer.classList.remove('d-none');
-            stepSelection.classList.add('completed');
-            stepVerification.classList.add('completed');
-            stepDispensing.classList.add('completed');
-            stepPickup.classList.add('active');
-        }
-    }
-    
-    // Hide all screens
-    function hideAllScreens() {
-        beverageTypeSelection.classList.add('d-none');
-        beverageSizeSelection.classList.add('d-none');
-        const shoppingCart = document.getElementById('shopping-cart');
-        if (shoppingCart) shoppingCart.classList.add('d-none');
-        const paymentScreen = document.getElementById('payment-screen');
-        if (paymentScreen) paymentScreen.classList.add('d-none');
-        ageVerification.classList.add('d-none');
-        dispensing.classList.add('d-none');
-        ready.classList.add('d-none');
-    }
         } else if (screenName === 'complete') {
             ready.classList.remove('d-none');
             progressContainer.classList.remove('d-none');
@@ -900,51 +872,4 @@ continueSizeBtn.onclick = function(event) {
             dispensingStatus.className = 'alert alert-danger';
             resetBtn.classList.remove('d-none');
         });
-    // Initialize UI based on server state
-    let initialScreen = document.getElementById('current_screen') 
-        ? document.getElementById('current_screen').value 
-        : '';
-        
-    let selectedBeverageFromServer = document.getElementById('selected_beverage') 
-        ? document.getElementById('selected_beverage').value 
-        : '';
-        
-    let selectedSizeFromServer = document.getElementById('selected_size') 
-        ? document.getElementById('selected_size').value 
-        : '';
-        
-    // Apply server state if available
-    if (selectedBeverageFromServer) {
-        selectedBeverageType = selectedBeverageFromServer;
-        // Find and select the beverage option
-        beverageTypeOptions.forEach(option => {
-            if (option.dataset.type === selectedBeverageType) {
-                option.classList.add('selected');
-                const beverageName = option.querySelector('h3').textContent;
-                beverageTypeDisplay.textContent = beverageName;
-                continueTypeBtn.disabled = false;
-            }
-        });
     }
-    
-    if (selectedSizeFromServer) {
-        selectedSize = selectedSizeFromServer;
-        // Find and select the size option
-        beverageSizeOptions.forEach(option => {
-            if (option.dataset.size === selectedSize) {
-                option.classList.add('selected');
-                continueSizeBtn.disabled = false;
-            }
-        });
-    }
-    
-    if (initialScreen) {
-        restoreUIState(initialScreen);
-    }
-    
-    // Add event listener for language switch to save state
-    document.getElementById('language-switch-btn').addEventListener('click', function() {
-        saveStateToServer();
-    });
-
-});

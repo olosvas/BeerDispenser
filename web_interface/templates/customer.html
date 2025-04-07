@@ -3,6 +3,14 @@
 {% block title %}Order Beverage{% endblock %}
 
 {% block head %}
+<!-- Hidden inputs for UI state restoration -->
+<input type="hidden" id="current_screen" value="{{ current_screen }}">
+<input type="hidden" id="selected_beverage" value="{{ selected_beverage }}">
+<input type="hidden" id="selected_size" value="{{ selected_size }}">
+<!-- Hidden inputs for UI state restoration -->
+<input type="hidden" id="current_screen" value="{{ current_screen }}">
+<input type="hidden" id="selected_beverage" value="{{ selected_beverage }}">
+<input type="hidden" id="selected_size" value="{{ selected_size }}">
 <style>
     :root {
         --beer-amber: #FFA500;
@@ -276,8 +284,8 @@
 <div id="beverage-type-selection" class="container">
     <div class="row mb-4">
         <div class="col text-center">
-            <h2>Select Your Beverage</h2>
-            <p class="text-muted">Choose your preferred beverage type</p>
+            <h2>Vyberte si svoj nápoj</h2>
+            <p class="text-muted">Vyberte si druh nápoja</p>
         </div>
     </div>
     
@@ -286,9 +294,9 @@
             <div class="card beverage-type-option h-100" data-type="beer">
                 <div class="card-body text-center">
                     <i class="fas fa-beer fa-4x mb-3 text-warning"></i>
-                    <h3 class="card-title">Beer</h3>
-                    <p class="card-text text-muted">Premium draft beer with perfect foam</p>
-                    <span class="badge bg-info">Alcoholic</span>
+                    <h3 class="card-title">Šariš 10</h3>
+                    <p class="card-text text-muted">Čerstvé vychladené pivo</p>
+                    <span class="badge bg-info">Alkoholický nápoj</span>
                 </div>
             </div>
         </div>
@@ -298,8 +306,8 @@
                 <div class="card-body text-center">
                     <i class="fas fa-mug-hot fa-4x mb-3 text-dark"></i>
                     <h3 class="card-title">Kofola</h3>
-                    <p class="card-text text-muted">Traditional Czech cola-like soft drink</p>
-                    <span class="badge bg-success">Non-Alcoholic</span>
+                    <p class="card-text text-muted">Tradičná kofola originál</p>
+                    <span class="badge bg-success">Nealkoholické</span>
                 </div>
             </div>
         </div>
@@ -308,9 +316,9 @@
             <div class="card beverage-type-option h-100" data-type="birel">
                 <div class="card-body text-center">
                     <i class="fas fa-beer-mug-empty fa-4x mb-3 text-warning"></i>
-                    <h3 class="card-title">Birel</h3>
-                    <p class="card-text text-muted">Refreshing non-alcoholic radler</p>
-                    <span class="badge bg-success">Non-Alcoholic</span>
+                    <h3 class="card-title">Birel Pomelo&Grep</h3>
+                    <p class="card-text text-muted">Osviežujúci nealkoholický radler</p>
+                    <span class="badge bg-success">Nealkoholické</span>
                 </div>
             </div>
         </div>
@@ -318,9 +326,9 @@
     
     <div class="row">
         <div class="col text-center">
-            <p id="beverage-type-display">Selected: <span>None</span></p>
+            <p id="beverage-type-display">Vybrané: <span>None</span></p>
             <button id="continue-type-btn" class="btn btn-primary btn-lg" disabled>
-                Continue <i class="fas fa-chevron-right ms-2"></i>
+                Pokračuj <i class="fas fa-chevron-right ms-2"></i>
             </button>
         </div>
     </div>
@@ -331,7 +339,7 @@
     <div class="row mb-4">
         <div class="col text-center">
             <h2>Select Size & Quantity</h2>
-            <p class="text-muted">Choose your preferred serving size and quantity</p>
+            <p class="text-muted">Vyberte si množstvo požadovaného nápoja</p>
         </div>
     </div>
     
@@ -340,7 +348,7 @@
             <div class="card beverage-size-option h-100" data-size="300">
                 <div class="card-body text-center">
                     <i class="fas fa-glass-water fa-3x mb-3 text-info"></i>
-                    <h3 class="card-title">Small</h3>
+                    <h3 class="card-title">Malé</h3>
                     <p class="card-text">300ml</p>
                 </div>
             </div>
@@ -350,7 +358,7 @@
             <div class="card beverage-size-option h-100" data-size="500">
                 <div class="card-body text-center">
                     <i class="fas fa-glass-water fa-4x mb-3 text-info"></i>
-                    <h3 class="card-title">Large</h3>
+                    <h3 class="card-title">Veľké</h3>
                     <p class="card-text">500ml</p>
                 </div>
             </div>
