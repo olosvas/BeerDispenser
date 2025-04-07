@@ -90,25 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Continue Type Button - Move to size selection
-    continueTypeBtn.addEventListener('click', function() {
-        beverageTypeSelection.classList.add('d-none');
-        beverageSizeSelection.classList.remove('d-none');
-    });
-    
-    // Back to Type Selection
-    backToTypeBtn.addEventListener('click', function() {
-        beverageSizeSelection.classList.add('d-none');
-        beverageTypeSelection.classList.remove('d-none');
-    });
-    
-    // Continue Size Button - Start dispensing or trigger age verification
-    continueSizeBtn.addEventListener('click', function() {
-        progressContainer.classList.remove('d-none');
-        beverageSizeSelection.classList.add('d-none');
-        
-        // Update order summary for age verification
-        orderSummary.textContent = `${selectedBeverageType.charAt(0).toUpperCase() + selectedBeverageType.slice(1)} (${selectedSize}ml)`;
+cat temp_buttons.js/e
         
         // Start dispensing or age verification check
         fetch('/api/check_age_requirement', {
@@ -177,55 +159,76 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Verification method selection
-    document.getElementById("webcam-verify-btn").addEventListener("click", function() {
-        verificationMethods.classList.add("d-none");
-        webcamVerification.classList.remove("d-none");
-        resetWebcam();
-    });
+    const webcamVerifyBtn = document.getElementById("webcam-verify-btn");
+    if (webcamVerifyBtn) {
+        webcamVerifyBtn.addEventListener("click", function() {
+            verificationMethods.classList.add("d-none");
+            webcamVerification.classList.remove("d-none");
+            resetWebcam();
+        });
+    }
     
-    document.getElementById("id-verify-btn").addEventListener("click", function() {
-        verificationMethods.classList.add("d-none");
-        verificationForm.classList.remove("d-none");
-    });
+    const idVerifyBtn = document.getElementById("id-verify-btn");
+    if (idVerifyBtn) {
+        idVerifyBtn.addEventListener("click", function() {
+            verificationMethods.classList.add("d-none");
+            verificationForm.classList.remove("d-none");
+        });
+    }
     
     // Back button handlers
-    document.getElementById("back-to-methods-btn").addEventListener("click", function() {
-        verificationForm.classList.add("d-none");
-        verificationMethods.classList.remove("d-none");
-    });
+    const backToMethodsBtn = document.getElementById("back-to-methods-btn");
+    if (backToMethodsBtn) {
+        backToMethodsBtn.addEventListener("click", function() {
+            verificationForm.classList.add("d-none");
+            verificationMethods.classList.remove("d-none");
+        });
+    }
     
-    webcamBackBtn.addEventListener("click", function() {
-        stopWebcam();
-        webcamVerification.classList.add("d-none");
-        verificationMethods.classList.remove("d-none");
-    });
+    if (webcamBackBtn) {
+        webcamBackBtn.addEventListener("click", function() {
+            stopWebcam();
+            webcamVerification.classList.add("d-none");
+            verificationMethods.classList.remove("d-none");
+        });
+    }
     
-    document.getElementById("error-back-btn").addEventListener("click", function() {
-        verificationError.classList.add("d-none");
-        verificationMethods.classList.remove("d-none");
-    });
+    const errorBackBtn = document.getElementById("error-back-btn");
+    if (errorBackBtn) {
+        errorBackBtn.addEventListener("click", function() {
+            verificationError.classList.add("d-none");
+            verificationMethods.classList.remove("d-none");
+        });
+    }
 
     // Webcam control buttons
-    webcamStartBtn.addEventListener("click", function() {
-        startWebcam();
-    });
+    if (webcamStartBtn) {
+        webcamStartBtn.addEventListener("click", function() {
+            startWebcam();
+        });
+    }
     
-    webcamCaptureBtn.addEventListener("click", function() {
-        captureWebcamImage();
-    });
+    if (webcamCaptureBtn) {
+        webcamCaptureBtn.addEventListener("click", function() {
+            captureWebcamImage();
+        });
+    }
     
-    webcamRetryBtn.addEventListener("click", function() {
-        resetWebcam();
-    });
+    if (webcamRetryBtn) {
+        webcamRetryBtn.addEventListener("click", function() {
+            resetWebcam();
+        });
+    }
     
-    webcamProceedBtn.addEventListener("click", function() {
-        // We have a successful age verification, proceed to dispensing
-        stopWebcam();
-        startDispensing();
-    });
-    
-    // Verify Age and Start Order
-    verifyAgeBtn.addEventListener('click', function(e) {
+    if (webcamProceedBtn) {
+        webcamProceedBtn.addEventListener("click", function() {
+            // We have a successful age verification, proceed to dispensing
+            stopWebcam();
+            startDispensing();
+        });
+    }
+    if (verifyAgeBtn) {
+        verifyAgeBtn.addEventListener("click", function(e) {
         e.preventDefault();
         
         // Simple form validation
@@ -278,6 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
             verificationProcessing.classList.add('d-none');
         });
     });
+    }
     
     // Start the dispensing process
     function startDispensing() {
@@ -401,9 +405,10 @@ document.addEventListener('DOMContentLoaded', function() {
         readyOrderId.textContent = 'Order #' + Math.floor(Math.random() * 1000);
     }
     
-    // New order button
-    newOrderBtn.addEventListener('click', function() {
-        // Reset to initial state
+    if (newOrderBtn) {
+        newOrderBtn.addEventListener("click", function() {
+            // Reset to initial state
+            resetUI();
         resetUI();
     });
     

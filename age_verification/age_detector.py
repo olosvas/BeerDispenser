@@ -119,7 +119,11 @@ def detect_age_from_image(image_data, image_is_path=False):
         )
 
         # Parse the result
-        result = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        if content is None:
+            result = {}
+        else:
+            result = json.loads(content)
         
         # Create the response with standardized fields
         return {

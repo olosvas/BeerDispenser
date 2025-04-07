@@ -208,6 +208,39 @@ def api_reset_stats():
     return jsonify({'status': 'success', 'message': 'Statistics reset successfully'})
 
 
+@app.route('/api/check_age_requirement', methods=['POST'])
+def api_check_age_requirement():
+    """API endpoint to check if age verification is required for a beverage type."""
+    if _controller is None:
+        return jsonify({'error': 'System controller not initialized'}), 500
+    
+    # Get parameters
+    try:
+        data = request.json
+        beverage_type = data.get('beverage_type', 'beer')  # Default to beer if not specified
+        
+        # Import beverage settings
+        from config import BEVERAGE_POUR_SETTINGS
+        
+        # Validate beverage type
+        if beverage_type not in BEVERAGE_POUR_SETTINGS:
+            return jsonify({'error': f'Invalid beverage type'}), 400
+            
+        # Get beverage settings
+        beverage_settings = BEVERAGE_POUR_SETTINGS[beverage_type]
+        requires_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)  # Default to requiring verification
+        
+        return jsonify({
+            'requires_verification': requires_verification,
+            'beverage_name': beverage_settings.get('NAME', beverage_type),
+            'minimum_age': 21 if beverage_type == 'beer' else 18
+        })
+    
+    except Exception as e:
+        logger.error(f"Error checking age requirement: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
 @app.route('/api/verify_age', methods=['POST'])
 def api_verify_age():
     """API endpoint to verify customer age for beverage dispensing."""
