@@ -281,13 +281,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Automatically proceed to add-to-quantity-selection screen after a short delay
-        setTimeout(() => {
-            showScreen("shopping-cart");
-        }, 300);
         saveState();
     }
-    
     /**
      * Increase the quantity of the current selection
      */
