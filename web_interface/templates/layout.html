@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="{{ language|default('sk') }}" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beer Dispensing System - {% block title %}Home{% endblock %}</title>
+    <title>{% if language == 'sk' %}Výčapný systém{% else %}Beer Dispensing System{% endif %} - {% block title %}Home{% endblock %}</title>
     
     <!-- Bootstrap CSS from Replit theme -->
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
@@ -13,6 +13,46 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom.css') }}">
+    
+    <!-- Language switcher style -->
+    <style>
+        .language-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        .language-flag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            width: 40px;
+            height: 40px;
+            transition: transform 0.2s;
+        }
+        .language-flag:hover {
+            transform: translateY(-3px);
+        }
+        .language-flag.active {
+            border: 2px solid #fff;
+        }
+        .language-flag.sk {
+            background: linear-gradient(to bottom, white 33%, #0b4ea2 33%, #0b4ea2 66%, #ee1c25 66%);
+            color: black;
+        }
+        .language-flag.en {
+            background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjM1IDY1MCIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPg0KPGRlZnM+DQo8ZyBpZD0idW5pb24iPg0KPHVzZSB5PSItLjIxNiIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHhsaW5rOmhyZWY9IiNYIi8+DQo8dXNlIHk9IjIuMTYzIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeGxpbms6aHJlZj0iI1giLz4NCjwvZz4NCjxnIGlkPSJYIj4NCjx1c2UgeT0iLTQuMzI5IiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeGxpbms6aHJlZj0iI3MiLz4NCjx1c2UgeT0iNC4zMjkiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bGluazpocmVmPSIjcyIvPg0KPC9nPg0KPHBvbHlnb24gaWQ9InMiIHBvaW50cz0iMCwwIDAsMjE2LjQ0NzU1IHhcbnBkMTIzNSwwIi8+DQo8L2RlZnM+DQo8cGF0aCBmaWxsPSIjMDAyNDdkIiBkPSJtMCwwdjY1MGgxMjM1Vi0wIi8+DQo8cGF0aCBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMTAwIiBkPSJtMCwwIDAsMTI1LjY1MTk2NVxubLM1LDAgaC0xMjM1IEwwLDMyNS42NTE5NjUgdj0wIi8+DQo8cGF0aCBzdHJva2U9IiNjZjE0MmIiIHN0cm9rZS13aWR0aD0iNjYuNjY3IiBkPSJtMCwwIDAsMTI1LjY1MTk2NSAOTM1LDAgaC0xMjM1IDBMMC8zMjUuNjUxOTY1IHY9MCIvPg0KPC9zdmc+');
+            background-size: cover;
+            color: white;
+        }
+    </style>
     
     {% block head %}{% endblock %}
 </head>
