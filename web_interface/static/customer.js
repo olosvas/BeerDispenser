@@ -384,3 +384,105 @@ document.addEventListener('DOMContentLoaded', function() {
         dispensingError.classList.add('d-none');
     });
 });
+
+// Add additional error handling for debugging
+function displayErrorMessage(message, error) {
+    console.error('Error:', message, error);
+    
+    // If we're on the size selection screen, show an error there
+    if (!beverageSizeSelection.classList.contains('d-none')) {
+        // Create or use an existing error message element
+        let errorElement = document.getElementById('size-selection-error');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.id = 'size-selection-error';
+            errorElement.className = 'alert alert-danger mt-3';
+            errorElement.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i><span></span>';
+            document.querySelector('.col.text-center').appendChild(errorElement);
+        }
+        
+        // Set the error message
+        errorElement.querySelector('span').textContent = message || 'An error occurred. Please try again.';
+        errorElement.classList.remove('d-none');
+    }
+}
+
+// Add error handling to the continue size button click event
+const originalContinueSizeBtnClick = continueSizeBtn.onclick;
+continueSizeBtn.onclick = function(event) {
+    try {
+        // First make sure we have selected a size
+        if (!selectedSize) {
+            displayErrorMessage('Please select a size before continuing.');
+            return;
+        }
+        
+        displayErrorMessage('Processing your request...');
+        setTimeout(() => {
+            try {
+                // Update order summary
+                const beverageTypeName = beverageTypeDisplay.textContent;
+                orderSummary.textContent = `${beverageTypeName} (${selectedSize}ml)`;
+                
+                // First check if age verification is required for this beverage type
+                fetch('/api/dispense', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        beverage_type: selectedBeverageType,
+                        volume_ml: parseInt(selectedSize)
+                    })
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (response.status === 403) {
+                        // Age verification is required
+                        beverageSizeSelection.classList.add('d-none');
+                        ageVerification.classList.remove('d-none');
+                        stepSelection.classList.remove('active');
+                        stepSelection.classList.add('completed');
+                        stepVerification.classList.add('active');
+                        return Promise.reject('age_verification_required');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data.success) {
+                        // No age verification needed, beverage dispensing started directly
+                        // Skip age verification step and go directly to dispensing
+                        beverageSizeSelection.classList.add('d-none');
+                        dispensing.classList.remove('d-none');
+                        stepSelection.classList.remove('active');
+                        stepSelection.classList.add('completed');
+                        stepVerification.classList.add('completed');
+                        stepDispensing.classList.add('active');
+                        
+                        // Reset dispensing animation
+                        liquid.style.height = '0%';
+                        foam.style.bottom = '100%';
+                        
+                        // Start monitoring the order
+                        orderInProgress = true;
+                        monitorOrderProgress();
+                    } else {
+                        // Error starting dispensing
+                        displayErrorMessage(data.message || 'Failed to start the order. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    // If this is not the expected age verification redirect, show an error
+                    if (error !== 'age_verification_required') {
+                        displayErrorMessage('An error occurred. Please try again.', error);
+                    }
+                });
+            } catch (error) {
+                displayErrorMessage('An unexpected error occurred. Please try again.', error);
+            }
+        }, 100);
+    } catch (error) {
+        displayErrorMessage('An unexpected error occurred. Please try again.', error);
+    }
+};

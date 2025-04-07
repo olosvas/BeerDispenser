@@ -113,11 +113,15 @@ def api_dispense():
         
         # If this is an alcoholic beverage that requires age verification, check if the user has verified their age
         if requires_verification and not session.get('age_verified'):
+            logger.info(f"Age verification required for {beverage_type}")
             return jsonify({
                 'success': False,
                 'message': f'Age verification required for {BEVERAGE_POUR_SETTINGS[beverage_type]["NAME"]}',
                 'requires_verification': True
             }), 403
+            
+        # If this beverage doesn't require age verification, we can proceed
+        logger.info(f"No age verification needed for {beverage_type}")
             
     except Exception as e:
         logger.error(f"Error parsing dispense request: {str(e)}")

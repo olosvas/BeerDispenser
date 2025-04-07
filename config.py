@@ -79,7 +79,7 @@ BEVERAGE_POUR_SETTINGS = {
         'TEMPERATURE_MAX': 6.5,  # Maximum ideal temperature (°C)
         'COLOR': '#FFC857',  # Lighter amber color for Birel
         'ICON': 'beer-mug-empty',  # Font Awesome icon name
-        'REQUIRES_AGE_VERIFICATION': True  # Alcoholic beverage requires age verification
+        'REQUIRES_AGE_VERIFICATION': False  # Non-alcoholic beverage, no age verification needed
     }
 }
 
