@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const liquidEl = document.getElementById('liquid');
     const foamEl = document.getElementById('foam');
     
-    // Order complete elements
-    const orderComplete = document.getElementById('order-complete');
+    // Order complete elements (the "ready" screen)
+    const ready = document.getElementById('ready');
     const newOrderBtn = document.getElementById('new-order-btn');
     
     // Store selected options
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 // Show complete
                 dispensing.classList.add('d-none');
-                if (orderComplete) orderComplete.classList.remove('d-none');
+                if (ready) ready.classList.remove('d-none');
                 stepDispensing.classList.remove('active');
                 stepDispensing.classList.add('completed');
                 stepPickup.classList.add('active');
@@ -524,7 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (beverageSizeSelection) beverageSizeSelection.classList.add('d-none');
         if (ageVerification) ageVerification.classList.add('d-none');
         if (dispensing) dispensing.classList.add('d-none');
-        if (orderComplete) orderComplete.classList.add('d-none');
+        if (ready) ready.classList.add('d-none');
         if (progressContainer) progressContainer.classList.add('d-none');
         if (verificationMethods) verificationMethods.classList.remove('d-none');
         if (verificationForm) verificationForm.classList.add('d-none');
