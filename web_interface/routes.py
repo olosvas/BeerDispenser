@@ -217,9 +217,43 @@ def api_verify_age():
     # Get verification data
     try:
         data = request.json
+        
+        # Check if using webcam verification
+        webcam_verification = data.get('webcam_verification', False)
+        beverage_type = data.get('beverage_type', 'beer')  # Default to beer if not specified
+        
+        # Import beverage settings
+        from config import BEVERAGE_POUR_SETTINGS
+        
+        # Get beverage settings
+        if beverage_type not in BEVERAGE_POUR_SETTINGS:
+            # Default to beer if beverage type is not valid
+            beverage_type = 'beer'
+            
+        beverage_settings = BEVERAGE_POUR_SETTINGS[beverage_type]
+        needs_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)  # Default to requiring verification
+        
+        # For non-alcoholic beverages, no age verification is needed
+        if not needs_verification:
+            logger.info(f"No age verification needed for {beverage_settings['NAME']}")
+            return jsonify({
+                'status': 'success',
+                'message': f"No age verification needed for {beverage_settings['NAME']}",
+                'verified': True,
+            })
+            
+        # If using webcam verification
+        if webcam_verification:
+            # Process webcam verification in a different endpoint
+            return jsonify({
+                'status': 'redirect',
+                'message': 'Please use /api/verify_age_webcam endpoint for webcam verification',
+                'verified': False
+            })
+            
+        # Traditional ID verification
         id_number = data.get('id_number')
         birth_date = data.get('birth_date')
-        beverage_type = data.get('beverage_type', 'beer')  # Default to beer if not specified
         
         # Validate required fields
         if not all([id_number, birth_date]):
@@ -232,27 +266,8 @@ def api_verify_age():
             today = datetime.now()
             age = today.year - birth_date_obj.year - ((today.month, today.day) < (birth_date_obj.month, birth_date_obj.day))
             
-            # Check if the beverage type requires age verification
-            from config import BEVERAGE_POUR_SETTINGS
-            
-            # Get beverage settings
-            if beverage_type not in BEVERAGE_POUR_SETTINGS:
-                # Default to beer if beverage type is not valid
-                beverage_type = 'beer'
-                
-            beverage_settings = BEVERAGE_POUR_SETTINGS[beverage_type]
-            needs_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)  # Default to requiring verification
             minimum_age = 21 if beverage_type == 'beer' else 18  # Different age limits for different beverages
             
-            # For non-alcoholic beverages, no age verification is needed
-            if not needs_verification:
-                logger.info(f"No age verification needed for {beverage_settings['NAME']}")
-                return jsonify({
-                    'status': 'success',
-                    'message': f"No age verification needed for {beverage_settings['NAME']}",
-                    'verified': True,
-                })
-                
             # Check legal drinking age
             if needs_verification and age < minimum_age:
                 return jsonify({
@@ -282,3 +297,106 @@ def api_verify_age():
     except Exception as e:
         logger.error(f"Error during age verification: {e}")
         return jsonify({'status': 'error', 'message': 'Verification failed'}), 500
+
+
+@app.route('/api/verify_age_webcam', methods=['POST'])
+def api_verify_age_webcam():
+    """API endpoint to verify customer age using webcam and AI."""
+    if _controller is None:
+        return jsonify({'error': 'System controller not initialized'}), 500
+    
+    try:
+        # Get the beverage type from the request
+        data = request.json
+        beverage_type = data.get('beverage_type', 'beer')  # Default to beer if not specified
+        image_data = data.get('image_data')  # Base64 encoded image data
+        
+        # If image data is provided, use it directly
+        if image_data:
+            # Import here to avoid circular imports
+            from age_verification.age_detector import verify_age_for_beverage
+            import base64
+            
+            # Decode base64 image data
+            try:
+                # Remove data URL prefix if present
+                if 'base64,' in image_data:
+                    image_data = image_data.split('base64,')[1]
+                
+                # Decode the base64 string
+                image_bytes = base64.b64decode(image_data)
+                
+                # Verify age using the image
+                result = verify_age_for_beverage(image_bytes, beverage_type, image_is_path=False)
+                
+                # If verified, store in session
+                if result['verified']:
+                    session['age_verified'] = True
+                    session['beverage_type'] = beverage_type
+                    
+                return jsonify({
+                    'status': 'success' if result['verified'] else 'error',
+                    'message': result['message'],
+                    'verified': result['verified'],
+                    'estimated_age': result['estimated_age'],
+                    'confidence': result['confidence'],
+                    'beverage_type': beverage_type
+                })
+                
+            except Exception as e:
+                logger.error(f"Error processing image data: {str(e)}")
+                return jsonify({
+                    'status': 'error',
+                    'message': f"Error processing image: {str(e)}",
+                    'verified': False
+                }), 400
+        
+        # If no image data is provided, capture from webcam
+        else:
+            # Import the webcam module
+            from age_verification.webcam_capture import webcam
+            from age_verification.age_detector import verify_age_for_beverage
+            
+            # Initialize the webcam if needed
+            if not webcam.is_initialized:
+                success = webcam.initialize()
+                if not success:
+                    return jsonify({
+                        'status': 'error',
+                        'message': 'Failed to initialize webcam',
+                        'verified': False
+                    }), 500
+            
+            # Capture an image
+            success, image_data = webcam.capture_image()
+            if not success:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Failed to capture image from webcam',
+                    'verified': False
+                }), 500
+            
+            # Verify age using the captured image
+            result = verify_age_for_beverage(image_data, beverage_type, image_is_path=False)
+            
+            # If verified, store in session
+            if result['verified']:
+                session['age_verified'] = True
+                session['beverage_type'] = beverage_type
+                
+            return jsonify({
+                'status': 'success' if result['verified'] else 'error',
+                'message': result['message'],
+                'verified': result['verified'],
+                'estimated_age': result['estimated_age'],
+                'confidence': result['confidence'],
+                'beverage_type': beverage_type
+            })
+            
+    except Exception as e:
+        logger.error(f"Error during webcam age verification: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"Error during webcam age verification: {str(e)}",
+            'verified': False
+        }), 500

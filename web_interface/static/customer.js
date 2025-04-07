@@ -22,12 +22,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const ready = document.getElementById('ready');
     
     // Elements - Age Verification
+    const verificationMethods = document.getElementById("verification-methods");
+    const webcamVerification = document.getElementById("webcam-verification");
     const orderSummary = document.getElementById('order-summary').querySelector('span');
     const verifyAgeBtn = document.getElementById('verify-age-btn');
     const verificationForm = document.getElementById('verification-form');
+    const verificationMethods = document.getElementById('verification-methods');
+    const webcamVerification = document.getElementById('webcam-verification');
+    // Webcam elements
+    const webcamVideo = document.getElementById("webcam-video");
+    const webcamCanvas = document.getElementById("webcam-canvas");
+    const webcamPlaceholder = document.getElementById("webcam-placeholder");
+    const webcamStartBtn = document.getElementById("webcam-start-btn");
+    const webcamCaptureBtn = document.getElementById("webcam-capture-btn");
+    const webcamBackBtn = document.getElementById("webcam-back-btn");
+    const webcamResult = document.getElementById("webcam-result");
+    const webcamResultMessage = document.getElementById("webcam-result-message");
+    const webcamProceedBtn = document.getElementById("webcam-proceed-btn");
+    const webcamRetryBtn = document.getElementById("webcam-retry-btn");
+
+    // State for webcam
+    let webcamStream = null;
+    let capturedImage = null;
     const verificationProcessing = document.getElementById('verification-processing');
     const verificationError = document.getElementById('verification-error');
     const verificationErrorMessage = document.getElementById('verification-error-message');
+    
+    // Webcam elements
+    const webcamVideo = document.getElementById('webcam-video');
+    const webcamCanvas = document.getElementById('webcam-canvas');
+    const webcamPlaceholder = document.getElementById('webcam-placeholder');
+    const webcamStartBtn = document.getElementById('webcam-start-btn');
+    const webcamCaptureBtn = document.getElementById('webcam-capture-btn');
+    const webcamBackBtn = document.getElementById('webcam-back-btn');
+    const webcamResult = document.getElementById('webcam-result');
+    const webcamResultMessage = document.getElementById('webcam-result-message');
+    const webcamProceedBtn = document.getElementById('webcam-proceed-btn');
+    const webcamRetryBtn = document.getElementById('webcam-retry-btn');
+    
+    // State for webcam
+    let webcamStream = null;
+    let capturedImage = null;
     
     // Elements - Dispensing
     const dispensingStepCup = document.getElementById('dispensing-step-cup');
@@ -73,15 +108,21 @@ document.addEventListener('DOMContentLoaded', function() {
             continueSizeBtn.disabled = false;
         });
     });
-    
-    // Continue from Type Selection to Size Selection
-    continueTypeBtn.addEventListener('click', function() {
-        beverageTypeSelection.classList.add('d-none');
-        beverageSizeSelection.classList.remove('d-none');
-        progressContainer.classList.remove('d-none');
-        
-        // Update the liquid class based on beverage type
-        liquid.className = 'liquid ' + selectedBeverageType;
+            if (response.status === 403) {
+                // Age verification is required
+                beverageSizeSelection.classList.add("d-none");
+                ageVerification.classList.remove("d-none");
+                
+                // Show verification methods, hide verification form
+                verificationMethods.classList.remove("d-none");
+                verificationForm.classList.add("d-none");
+                webcamVerification.classList.add("d-none");
+                
+                stepSelection.classList.remove("active");
+                stepSelection.classList.add("completed");
+                stepVerification.classList.add("active");
+                return Promise.reject("age_verification_required");
+            }
     });
     
     // Back to Type Selection
@@ -162,6 +203,52 @@ document.addEventListener('DOMContentLoaded', function() {
         stepSelection.classList.add('active');
     });
     
+    // Verification method selection
+    document.getElementById("webcam-verify-btn").addEventListener("click", function() {
+        verificationMethods.classList.add("d-none");
+        webcamVerification.classList.remove("d-none");
+        resetWebcam();
+    });
+    
+    document.getElementById("id-verify-btn").addEventListener("click", function() {
+        verificationMethods.classList.add("d-none");
+        verificationForm.classList.remove("d-none");
+    });
+    
+    // Back button handlers
+    document.getElementById("back-to-methods-btn").addEventListener("click", function() {
+        verificationForm.classList.add("d-none");
+        verificationMethods.classList.remove("d-none");
+    });
+    
+    webcamBackBtn.addEventListener("click", function() {
+        stopWebcam();
+        webcamVerification.classList.add("d-none");
+        verificationMethods.classList.remove("d-none");
+    });
+    
+    document.getElementById("error-back-btn").addEventListener("click", function() {
+    // Webcam control buttons
+    webcamStartBtn.addEventListener("click", function() {
+        startWebcam();
+    });
+    
+    webcamCaptureBtn.addEventListener("click", function() {
+        captureWebcamImage();
+    });
+    
+    webcamRetryBtn.addEventListener("click", function() {
+        resetWebcam();
+    });
+    
+    webcamProceedBtn.addEventListener("click", function() {
+        // We have a successful age verification, proceed to dispensing
+        stopWebcam();
+        startDispensing();
+    });
+        verificationError.classList.add("d-none");
+        verificationMethods.classList.remove("d-none");
+    });
     // Verify Age and Start Order
     verifyAgeBtn.addEventListener('click', function(e) {
         e.preventDefault();
@@ -486,3 +573,261 @@ continueSizeBtn.onclick = function(event) {
         displayErrorMessage('An unexpected error occurred. Please try again.', error);
     }
 };
+
+    // Webcam Functions
+    function startWebcam() {
+        // Check if the browser supports getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showWebcamError("Your browser doesn't support webcam access");
+            return;
+        }
+        
+        // Request access to the webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                webcamStream = stream;
+                webcamVideo.srcObject = stream;
+                webcamVideo.style.display = 'block';
+                webcamPlaceholder.style.display = 'none';
+                webcamCanvas.style.display = 'none';
+                
+                // Update button states
+                webcamStartBtn.disabled = true;
+                webcamCaptureBtn.disabled = false;
+                
+                // Hide any previous results
+                webcamResult.classList.add('d-none');
+            })
+            .catch(function(error) {
+                console.error('Error accessing webcam:', error);
+                showWebcamError('Could not access webcam. Please ensure you have granted permission.');
+            });
+    }
+    
+    function stopWebcam() {
+        if (webcamStream) {
+            webcamStream.getTracks().forEach(track => track.stop());
+            webcamStream = null;
+        }
+        
+        webcamVideo.srcObject = null;
+        webcamVideo.style.display = 'none';
+        webcamPlaceholder.style.display = 'flex';
+        
+        // Reset button states
+        webcamStartBtn.disabled = false;
+        webcamCaptureBtn.disabled = true;
+    }
+    
+    function captureWebcamImage() {
+        // Create a canvas element to capture the image
+        const canvas = webcamCanvas;
+        const context = canvas.getContext('2d');
+        
+        // Set canvas dimensions to match video
+        canvas.width = webcamVideo.videoWidth;
+        canvas.height = webcamVideo.videoHeight;
+        
+        // Draw the video frame to the canvas
+        context.drawImage(webcamVideo, 0, 0, canvas.width, canvas.height);
+        
+        // Show the canvas and hide the video
+        webcamVideo.style.display = 'none';
+        webcamCanvas.style.display = 'block';
+        
+        // Get the image data as base64
+        capturedImage = canvas.toDataURL('image/jpeg');
+        
+        // Show processing state
+        webcamCaptureBtn.disabled = true;
+        webcamStartBtn.disabled = true;
+        webcamBackBtn.disabled = true;
+        webcamResult.classList.add('d-none');
+        verificationProcessing.classList.remove('d-none');
+        
+        // Send the image to the server for age verification
+        fetch('/api/verify_age_webcam', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_data: capturedImage,
+                beverage_type: selectedBeverageType
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide processing state
+            verificationProcessing.classList.add('d-none');
+            webcamBackBtn.disabled = false;
+            
+            // Show result
+            webcamResult.classList.remove('d-none');
+            
+            // Format the result message
+            let message = '';
+            if (data.verified) {
+                message = `<strong>Verification successful!</strong><br>`;
+                message += `Estimated age: ${data.estimated_age} years<br>`;
+                message += `Confidence: ${Math.round(data.confidence * 100)}%`;
+                webcamResultMessage.innerHTML = message;
+                webcamResult.querySelector('.alert').className = 'alert alert-success';
+                
+                // Show proceed button
+                webcamProceedBtn.classList.remove('d-none');
+            } else {
+                message = `<strong>Verification failed:</strong><br>`;
+                message += data.message;
+                webcamResultMessage.innerHTML = message;
+                webcamResult.querySelector('.alert').className = 'alert alert-danger';
+                
+                // Hide proceed button
+                webcamProceedBtn.classList.add('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error during webcam verification:', error);
+            
+            // Hide processing state
+            verificationProcessing.classList.add('d-none');
+            webcamBackBtn.disabled = false;
+            
+            // Show error in result area
+            webcamResult.classList.remove('d-none');
+            webcamResultMessage.innerHTML = '<strong>Error:</strong><br>Failed to process image for verification.';
+            webcamResult.querySelector('.alert').className = 'alert alert-danger';
+            
+            // Hide proceed button
+            webcamProceedBtn.classList.add('d-none');
+        });
+    }
+    
+    function resetWebcam() {
+        // Reset webcam state
+        stopWebcam();
+        capturedImage = null;
+        
+        // Reset UI
+        webcamVideo.style.display = 'none';
+        webcamCanvas.style.display = 'none';
+        webcamPlaceholder.style.display = 'flex';
+        webcamStartBtn.disabled = false;
+        webcamCaptureBtn.disabled = true;
+        webcamBackBtn.disabled = false;
+        webcamResult.classList.add('d-none');
+        webcamProceedBtn.classList.add('d-none');
+    }
+    
+    function showWebcamError(message) {
+        webcamResult.classList.remove('d-none');
+        webcamResultMessage.innerHTML = `<strong>Error:</strong><br>${message}`;
+        webcamResult.querySelector('.alert').className = 'alert alert-danger';
+        webcamProceedBtn.classList.add('d-none');
+    }
+    
+    function startDispensing() {
+        // Update UI for dispensing
+        ageVerification.classList.add('d-none');
+        dispensingInfo.classList.remove('d-none');
+        
+        stepVerification.classList.remove('active');
+        stepVerification.classList.add('completed');
+        stepDispensing.classList.add('active');
+        
+        // Start the dispensing sequence
+        let data = {
+            beverage_type: selectedBeverageType,
+            volume_ml: selectedBeverageSize
+        };
+        
+        fetch('/api/dispense', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                dispensingMessage.textContent = 'Beverage dispensed successfully!';
+                dispensingStatus.className = 'alert alert-success';
+                
+                setTimeout(() => {
+                    // If successful, allow starting a new order
+                    resetBtn.classList.remove('d-none');
+                    
+                    stepDispensing.classList.remove('active');
+                    stepDispensing.classList.add('completed');
+                    stepCompletion.classList.add('active');
+                }, 2000);
+            } else {
+                // Show error message
+                dispensingMessage.textContent = 'Error: ' + data.message;
+                dispensingStatus.className = 'alert alert-danger';
+                resetBtn.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            // Show error message
+            console.error('Error during dispensing:', error);
+            dispensingMessage.textContent = 'Error: Unable to communicate with the dispenser.';
+            dispensingStatus.className = 'alert alert-danger';
+            resetBtn.classList.remove('d-none');
+        });
+    }
+    
+    function startDispensing() {
+        // Update UI for dispensing
+        ageVerification.classList.add('d-none');
+        dispensingInfo.classList.remove('d-none');
+        
+        stepVerification.classList.remove('active');
+        stepVerification.classList.add('completed');
+        stepDispensing.classList.add('active');
+        
+        // Start the dispensing sequence
+        let data = {
+            beverage_type: selectedBeverageType,
+            volume_ml: selectedBeverageSize
+        };
+        
+        fetch('/api/dispense', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                dispensingMessage.textContent = 'Beverage dispensed successfully!';
+                dispensingStatus.className = 'alert alert-success';
+                
+                setTimeout(() => {
+                    // If successful, allow starting a new order
+                    resetBtn.classList.remove('d-none');
+                    
+                    stepDispensing.classList.remove('active');
+                    stepDispensing.classList.add('completed');
+                    stepCompletion.classList.add('active');
+                }, 2000);
+            } else {
+                // Show error message
+                dispensingMessage.textContent = 'Error: ' + data.message;
+                dispensingStatus.className = 'alert alert-danger';
+                resetBtn.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            // Show error message
+            console.error('Error during dispensing:', error);
+            dispensingMessage.textContent = 'Error: Unable to communicate with the dispenser.';
+            dispensingStatus.className = 'alert alert-danger';
+            resetBtn.classList.remove('d-none');
+        });
+    }
