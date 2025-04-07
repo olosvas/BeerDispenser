@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Beverage type selection
         beverageTypeOptions.forEach(option => {
             option.addEventListener('click', () => {
-                const type = option.getAttribute('data-beverage-type');
+                const type = option.getAttribute('data-type');
                 selectBeverage(type);
             });
         });
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Beverage size selection
         beverageSizeOptions.forEach(option => {
             option.addEventListener('click', () => {
-                const size = parseInt(option.getAttribute('data-beverage-size'), 10);
+                const size = parseInt(option.getAttribute('data-size'), 10);
                 selectSize(size);
             });
         });
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update UI
         beverageTypeOptions.forEach(option => {
-            if (option.getAttribute('data-beverage-type') === type) {
+            if (option.getAttribute('data-type') === type) {
                 option.classList.add('selected');
             } else {
                 option.classList.remove('selected');
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update UI
         beverageSizeOptions.forEach(option => {
-            if (parseInt(option.getAttribute('data-beverage-size'), 10) === size) {
+            if (parseInt(option.getAttribute('data-size'), 10) === size) {
                 option.classList.add('selected');
             } else {
                 option.classList.remove('selected');
@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Update UI based on restored state
                     beverageTypeOptions.forEach(option => {
-                        if (option.getAttribute('data-beverage-type') === selectedBeverage) {
+                        if (option.getAttribute('data-type') === selectedBeverage) {
                             option.classList.add('selected');
                         } else {
                             option.classList.remove('selected');
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     beverageSizeOptions.forEach(option => {
-                        if (parseInt(option.getAttribute('data-beverage-size'), 10) === selectedSize) {
+                        if (parseInt(option.getAttribute('data-size'), 10) === selectedSize) {
                             option.classList.add('selected');
                         } else {
                             option.classList.remove('selected');
