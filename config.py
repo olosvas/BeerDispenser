@@ -52,7 +52,8 @@ BEVERAGE_POUR_SETTINGS = {
         'TEMPERATURE_MIN': 4.0,  # Minimum ideal temperature (°C)
         'TEMPERATURE_MAX': 7.0,  # Maximum ideal temperature (°C)
         'COLOR': '#FFA500',  # Amber color for beer
-        'ICON': 'beer'  # Font Awesome icon name
+        'ICON': 'beer',  # Font Awesome icon name
+        'REQUIRES_AGE_VERIFICATION': True  # Alcoholic beverage requires age verification
     },
     'kofola': {
         'NAME': 'Kofola',
@@ -64,7 +65,8 @@ BEVERAGE_POUR_SETTINGS = {
         'TEMPERATURE_MIN': 3.0,  # Minimum ideal temperature (°C)
         'TEMPERATURE_MAX': 5.0,  # Maximum ideal temperature (°C)
         'COLOR': '#4B2D1A',  # Dark brown color for Kofola
-        'ICON': 'glass-water'  # Font Awesome icon name
+        'ICON': 'glass-water',  # Font Awesome icon name
+        'REQUIRES_AGE_VERIFICATION': False  # Non-alcoholic beverage, no age verification needed
     },
     'birel': {
         'NAME': 'Birel',
@@ -76,7 +78,8 @@ BEVERAGE_POUR_SETTINGS = {
         'TEMPERATURE_MIN': 4.0,  # Minimum ideal temperature (°C)
         'TEMPERATURE_MAX': 6.5,  # Maximum ideal temperature (°C)
         'COLOR': '#FFC857',  # Lighter amber color for Birel
-        'ICON': 'beer-mug-empty'  # Font Awesome icon name
+        'ICON': 'beer-mug-empty',  # Font Awesome icon name
+        'REQUIRES_AGE_VERIFICATION': True  # Alcoholic beverage requires age verification
     }
 }
 

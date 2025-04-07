@@ -104,9 +104,20 @@ def api_dispense():
             volume_ml = float(volume_ml)
             
         # Validate beverage type
-        from config import BEVERAGE_TYPES
+        from config import BEVERAGE_TYPES, BEVERAGE_POUR_SETTINGS
         if beverage_type not in BEVERAGE_TYPES:
             return jsonify({'error': f'Invalid beverage type. Supported types: {", ".join(BEVERAGE_TYPES)}'}), 400
+        
+        # Check if age verification is required for this beverage
+        requires_verification = BEVERAGE_POUR_SETTINGS[beverage_type].get('REQUIRES_AGE_VERIFICATION', True)
+        
+        # If this is an alcoholic beverage that requires age verification, check if the user has verified their age
+        if requires_verification and not session.get('age_verified'):
+            return jsonify({
+                'success': False,
+                'message': f'Age verification required for {BEVERAGE_POUR_SETTINGS[beverage_type]["NAME"]}',
+                'requires_verification': True
+            }), 403
             
     except Exception as e:
         logger.error(f"Error parsing dispense request: {str(e)}")
@@ -217,16 +228,24 @@ def api_verify_age():
             today = datetime.now()
             age = today.year - birth_date_obj.year - ((today.month, today.day) < (birth_date_obj.month, birth_date_obj.day))
             
-            # Determine if age verification is needed based on beverage type
-            needs_verification = beverage_type in ['beer', 'birel']  # Only beer requires age verification
+            # Check if the beverage type requires age verification
+            from config import BEVERAGE_POUR_SETTINGS
+            
+            # Get beverage settings
+            if beverage_type not in BEVERAGE_POUR_SETTINGS:
+                # Default to beer if beverage type is not valid
+                beverage_type = 'beer'
+                
+            beverage_settings = BEVERAGE_POUR_SETTINGS[beverage_type]
+            needs_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)  # Default to requiring verification
             minimum_age = 21 if beverage_type == 'beer' else 18  # Different age limits for different beverages
             
-            # For non-alcoholic beverages like Kofola, no age verification is needed
-            if beverage_type == 'kofola':
-                logger.info(f"No age verification needed for {beverage_type}")
+            # For non-alcoholic beverages, no age verification is needed
+            if not needs_verification:
+                logger.info(f"No age verification needed for {beverage_settings['NAME']}")
                 return jsonify({
                     'status': 'success',
-                    'message': 'No age verification needed for this beverage',
+                    'message': f"No age verification needed for {beverage_settings['NAME']}",
                     'verified': True,
                 })
                 
