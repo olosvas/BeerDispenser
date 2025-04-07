@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const backToTypeBtn = document.getElementById('back-to-type-btn');
     const addToCartBtn = document.getElementById('add-to-cart-btn');
     const viewCartFromSizeBtn = document.getElementById('view-cart-from-size-btn');
+    const quantityInput = document.querySelector('.quantity-input');
+    const decreaseQuantityBtn = document.querySelector('.dec-quantity');
+    const increaseQuantityBtn = document.querySelector('.inc-quantity');
+    const quickQuantityBtns = document.querySelectorAll('.quick-quantity-btn');
     
     // Cart elements
     const cartIconContainer = document.getElementById('cart-icon-container');
@@ -22,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const cartItemsContainer = document.getElementById('cart-items-container');
     const emptyCartMessage = document.getElementById('empty-cart-message');
     const cartTotalItems = document.getElementById('cart-total-items');
+    const cartTotalPrice = document.getElementById('cart-total-price');
     const continueShopping = document.getElementById('continue-shopping-btn');
     const checkoutBtn = document.getElementById('checkout-btn');
     
@@ -147,6 +152,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Quantity controls
+    if (decreaseQuantityBtn) {
+        decreaseQuantityBtn.addEventListener('click', function() {
+            const currentValue = parseInt(quantityInput.value);
+            if (currentValue > 1) {
+                quantityInput.value = currentValue - 1;
+            }
+        });
+    }
+    
+    if (increaseQuantityBtn) {
+        increaseQuantityBtn.addEventListener('click', function() {
+            const currentValue = parseInt(quantityInput.value);
+            if (currentValue < 10) {
+                quantityInput.value = currentValue + 1;
+            }
+        });
+    }
+    
+    if (quantityInput) {
+        quantityInput.addEventListener('change', function() {
+            let value = parseInt(this.value);
+            if (isNaN(value) || value < 1) {
+                this.value = 1;
+            } else if (value > 10) {
+                this.value = 10;
+            }
+        });
+    }
+    
+    // Quick quantity buttons
+    quickQuantityBtns.forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', function() {
+                const quantity = parseInt(this.dataset.quantity);
+                if (!isNaN(quantity) && quantity >= 1 && quantity <= 10) {
+                    quantityInput.value = quantity;
+                }
+            });
+        }
+    });
+    
     // Continue Type Button - Move to size selection
     if (continueTypeBtn) {
         continueTypeBtn.addEventListener('click', function() {
@@ -166,11 +213,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add to cart button
     if (addToCartBtn) {
         addToCartBtn.addEventListener('click', function() {
+            // Get quantity
+            const quantity = parseInt(quantityInput.value);
+            if (isNaN(quantity) || quantity < 1) {
+                return;
+            }
+            
             // Create new cart item
             const cartItem = {
                 id: Date.now(), // unique id
                 type: selectedBeverageType,
                 size: selectedSize,
+                quantity: quantity,
                 isAlcoholic: selectedBeverageType === 'beer' // assuming only beer is alcoholic
             };
             
@@ -187,12 +241,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reset selection
             beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
             addToCartBtn.disabled = true;
+            quantityInput.value = 1; // Reset quantity
             
             // Show feedback to user
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-success alert-dismissible fade show';
             alertDiv.innerHTML = `
-                <strong>Added to cart!</strong> ${selectedBeverageType.charAt(0).toUpperCase() + selectedBeverageType.slice(1)} (${selectedSize}ml)
+                <strong>Added to cart!</strong> ${quantity}x ${selectedBeverageType.charAt(0).toUpperCase() + selectedBeverageType.slice(1)} (${selectedSize}ml)
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
             
@@ -249,10 +304,44 @@ document.addEventListener('DOMContentLoaded', function() {
             stepCart.classList.add('completed');
             
             if (needsVerification) {
-                stepVerification.classList.add('active');
-                ageVerification.classList.remove('d-none');
-                shoppingCart.classList.add('d-none');
-                requiresAgeVerification = true;
+                // Call the API to check which cart items need verification
+                const cartItemsForAPI = cartItems.map(item => ({
+                    type: item.type,
+                    size: item.size,
+                    quantity: item.quantity
+                }));
+                
+                fetch('/api/check_age_requirement', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cart_items: cartItemsForAPI
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    requiresAgeVerification = data.requires_verification;
+                    
+                    if (requiresAgeVerification) {
+                        stepVerification.classList.add('active');
+                        ageVerification.classList.remove('d-none');
+                        shoppingCart.classList.add('d-none');
+                    } else {
+                        // Skip verification, go to payment
+                        stepVerification.classList.remove('active');
+                        stepPayment.classList.add('active');
+                        showPaymentScreen();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking age requirement:', error);
+                    // Default to requiring verification if error occurs
+                    stepVerification.classList.add('active');
+                    ageVerification.classList.remove('d-none');
+                    shoppingCart.classList.add('d-none');
+                });
             } else {
                 // Skip verification, go to payment
                 stepVerification.classList.remove('active');
@@ -300,23 +389,88 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentScreen.classList.add('d-none');
             paymentProcessing.classList.remove('d-none');
             
-            // Simulate payment processing
-            setTimeout(() => {
-                // Hide payment processing
-                paymentProcessing.classList.add('d-none');
+            // Prepare cart items for the API
+            const cartItemsForAPI = cartItems.map(item => ({
+                type: item.type,
+                size: item.size,
+                quantity: item.quantity
+            }));
+            
+            // Call the payment processing API
+            fetch('/api/process_payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    payment_method: selectedPaymentMethod,
+                    amount: calculateTotalPrice(),
+                    cart_items: cartItemsForAPI
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Simulate payment processing time
+                setTimeout(() => {
+                    // Hide payment processing
+                    paymentProcessing.classList.add('d-none');
+                    
+                    // Update progress steps
+                    stepPayment.classList.remove('active');
+                    stepPayment.classList.add('completed');
+                    stepDispensing.classList.add('active');
+                    
+                    // Prepare dispensing queue - create multiple items based on quantity
+                    dispensingQueue = [];
+                    cartItems.forEach(item => {
+                        for (let i = 0; i < item.quantity; i++) {
+                            dispensingQueue.push({
+                                id: `${item.id}-${i}`,
+                                type: item.type,
+                                size: item.size,
+                                isAlcoholic: item.isAlcoholic
+                            });
+                        }
+                    });
+                    
+                    currentDispensingIndex = 0;
+                    
+                    // Start dispensing process
+                    startDispensing();
+                }, 2000);
+            })
+            .catch(error => {
+                console.error('Error processing payment:', error);
                 
-                // Update progress steps
-                stepPayment.classList.remove('active');
-                stepPayment.classList.add('completed');
-                stepDispensing.classList.add('active');
-                
-                // Prepare dispensing queue
-                dispensingQueue = [...cartItems];
-                currentDispensingIndex = 0;
-                
-                // Start dispensing process
-                startDispensing();
-            }, 3000);
+                // For demo purposes, continue anyway
+                setTimeout(() => {
+                    // Hide payment processing
+                    paymentProcessing.classList.add('d-none');
+                    
+                    // Update progress steps
+                    stepPayment.classList.remove('active');
+                    stepPayment.classList.add('completed');
+                    stepDispensing.classList.add('active');
+                    
+                    // Prepare dispensing queue - create multiple items based on quantity
+                    dispensingQueue = [];
+                    cartItems.forEach(item => {
+                        for (let i = 0; i < item.quantity; i++) {
+                            dispensingQueue.push({
+                                id: `${item.id}-${i}`,
+                                type: item.type,
+                                size: item.size,
+                                isAlcoholic: item.isAlcoholic
+                            });
+                        }
+                    });
+                    
+                    currentDispensingIndex = 0;
+                    
+                    // Start dispensing process
+                    startDispensing();
+                }, 2000);
+            });
         });
     }
     
@@ -360,18 +514,61 @@ document.addEventListener('DOMContentLoaded', function() {
             verificationForm.classList.add('d-none');
             verificationProcessing.classList.remove('d-none');
             
-            // Send verification request (in real system - in our demo we'll just simulate success)
-            setTimeout(() => {
+            // Get the alcoholic beverage types in the cart
+            const alcoholicBeverages = cartItems
+                .filter(item => item.isAlcoholic)
+                .map(item => item.type);
+                
+            const beverage_type = alcoholicBeverages.length > 0 ? alcoholicBeverages[0] : 'beer';
+            
+            // Send verification request
+            fetch('/api/verify_age', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id_number: idNumber.value,
+                    birth_date: birthDate.value,
+                    beverage_type: beverage_type
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Age verification response:', data);
                 verificationProcessing.classList.add('d-none');
                 
-                // Proceed to payment
-                ageVerification.classList.add('d-none');
-                stepVerification.classList.remove('active');
-                stepVerification.classList.add('completed');
-                stepPayment.classList.add('active');
+                if (data.verified || data.status === 'success') {
+                    // Proceed to payment
+                    ageVerification.classList.add('d-none');
+                    stepVerification.classList.remove('active');
+                    stepVerification.classList.add('completed');
+                    stepPayment.classList.add('active');
+                    
+                    showPaymentScreen();
+                } else {
+                    // Show error
+                    verificationErrorMessage.textContent = data.message || 'Age verification failed';
+                    verificationError.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                console.error('Error verifying age:', error);
+                verificationProcessing.classList.add('d-none');
+                verificationErrorMessage.textContent = 'Error processing verification';
+                verificationError.classList.remove('d-none');
                 
-                showPaymentScreen();
-            }, 2000);
+                // For demo, continue anyway
+                setTimeout(() => {
+                    // Proceed to payment
+                    ageVerification.classList.add('d-none');
+                    stepVerification.classList.remove('active');
+                    stepVerification.classList.add('completed');
+                    stepPayment.classList.add('active');
+                    
+                    showPaymentScreen();
+                }, 2000);
+            });
         });
     }
     
@@ -477,9 +674,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update cart UI based on current items
     function updateCartUI() {
+        // Count total items (including quantities)
+        const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+        
         // Update count badge
-        cartCount.textContent = cartItems.length;
-        cartTotalItems.textContent = cartItems.length;
+        cartCount.textContent = totalItems;
+        cartTotalItems.textContent = totalItems;
+        
+        // Update total price
+        cartTotalPrice.textContent = `€${calculateTotalPrice()}`;
         
         // Enable checkout button if cart has items
         checkoutBtn.disabled = cartItems.length === 0;
@@ -497,19 +700,33 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add each item to the cart
             cartItems.forEach(item => {
                 const cartItemElement = document.createElement('div');
-                cartItemElement.className = 'cart-item d-flex justify-content-between align-items-center py-2';
+                cartItemElement.className = 'cart-item d-flex justify-content-between align-items-center py-3';
                 cartItemElement.innerHTML = `
                     <div>
                         <h6 class="mb-0">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</h6>
-                        <small class="text-muted">${item.size}ml</small>
-                    </div>
-                    <div>
-                        <span class="badge ${item.isAlcoholic ? 'bg-info' : 'bg-success'}">
+                        <div class="text-muted">${item.size}ml x <span class="item-quantity">${item.quantity}</span></div>
+                        <span class="badge ${item.isAlcoholic ? 'bg-info' : 'bg-success'} mt-1">
                             ${item.isAlcoholic ? 'Alcoholic' : 'Non-Alcoholic'}
                         </span>
-                        <button class="btn btn-sm btn-outline-danger ms-2 remove-item-btn" data-id="${item.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <div class="quantity-selector">
+                                <button class="btn btn-sm btn-outline-secondary update-quantity" data-action="decrease" data-id="${item.id}">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span class="mx-2">${item.quantity}</span>
+                                <button class="btn btn-sm btn-outline-secondary update-quantity" data-action="increase" data-id="${item.id}">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-end mb-1">${calculateItemPrice(item)}€</div>
+                            <button class="btn btn-sm btn-outline-danger remove-item-btn" data-id="${item.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 `;
                 
@@ -523,7 +740,32 @@ document.addEventListener('DOMContentLoaded', function() {
                         removeCartItem(itemId);
                     });
                 }
+                
+                // Add event listeners to quantity update buttons
+                const quantityBtns = cartItemElement.querySelectorAll('.update-quantity');
+                quantityBtns.forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const itemId = parseInt(this.dataset.id);
+                        const action = this.dataset.action;
+                        updateCartItemQuantity(itemId, action);
+                    });
+                });
             });
+        }
+    }
+    
+    // Update a cart item's quantity
+    function updateCartItemQuantity(itemId, action) {
+        const itemIndex = cartItems.findIndex(item => item.id === itemId);
+        
+        if (itemIndex !== -1) {
+            if (action === 'increase' && cartItems[itemIndex].quantity < 10) {
+                cartItems[itemIndex].quantity += 1;
+            } else if (action === 'decrease' && cartItems[itemIndex].quantity > 1) {
+                cartItems[itemIndex].quantity -= 1;
+            }
+            
+            updateCartUI();
         }
     }
     
@@ -537,7 +779,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const summaryItem = document.createElement('div');
             summaryItem.className = 'd-flex justify-content-between mb-2';
             summaryItem.innerHTML = `
-                <span>${item.type.charAt(0).toUpperCase() + item.type.slice(1)} (${item.size}ml)</span>
+                <span>${item.quantity}x ${item.type.charAt(0).toUpperCase() + item.type.slice(1)} (${item.size}ml)</span>
                 <span>${calculateItemPrice(item)}€</span>
             `;
             
@@ -552,7 +794,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function calculateItemPrice(item) {
         const basePrice = item.isAlcoholic ? 2.50 : 1.50;
         const sizeMultiplier = item.size === '500' ? 1.5 : 1;
-        return (basePrice * sizeMultiplier).toFixed(2);
+        return (basePrice * sizeMultiplier * item.quantity).toFixed(2);
     }
     
     // Calculate total price
@@ -566,6 +808,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function removeCartItem(itemId) {
         cartItems = cartItems.filter(item => item.id !== itemId);
         updateCartUI();
+        
+        // Hide cart icon if cart is empty
+        if (cartItems.length === 0) {
+            cartIconContainer.classList.add('d-none');
+            viewCartFromSizeBtn.classList.add('d-none');
+        }
     }
     
     // Start the dispensing process for multiple beverages
@@ -708,12 +956,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const orderId = `#${Math.floor(Math.random() * 10000)}`;
         document.getElementById('ready-order-id').textContent = orderId;
         
+        // Group dispensed beverages by type and size for display
+        const groupedBeverages = {};
+        
+        dispensingQueue.forEach(item => {
+            const key = `${item.type}-${item.size}`;
+            if (!groupedBeverages[key]) {
+                groupedBeverages[key] = {
+                    type: item.type,
+                    size: item.size,
+                    count: 0
+                };
+            }
+            groupedBeverages[key].count++;
+        });
+        
         // Display dispensed beverages
         if (dispensedBeveragesList) {
             dispensedBeveragesList.innerHTML = '';
-            dispensingQueue.forEach(item => {
+            
+            Object.values(groupedBeverages).forEach(item => {
                 const listItem = document.createElement('div');
-                listItem.innerHTML = `<strong>${item.type.charAt(0).toUpperCase() + item.type.slice(1)}:</strong> ${item.size}ml<br>`;
+                listItem.innerHTML = `<strong>${item.count}x ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}:</strong> ${item.size}ml<br>`;
                 dispensedBeveragesList.appendChild(listItem);
             });
         }
@@ -740,6 +1004,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-exclamation-circle fa-3x text-danger mb-2"></i>
                         <span class="text-danger">Could not access camera</span>
                     `;
+                    
+                    // For demo, proceed anyway after delay
+                    setTimeout(() => {
+                        webcamVerification.classList.add('d-none');
+                        
+                        // Proceed to payment
+                        ageVerification.classList.add('d-none');
+                        stepVerification.classList.remove('active');
+                        stepVerification.classList.add('completed');
+                        stepPayment.classList.add('active');
+                        
+                        showPaymentScreen();
+                    }, 3000);
                 });
         } else {
             console.error('getUserMedia not supported');
@@ -747,6 +1024,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-exclamation-circle fa-3x text-danger mb-2"></i>
                 <span class="text-danger">Camera not supported by your browser</span>
             `;
+            
+            // For demo, proceed anyway after delay
+            setTimeout(() => {
+                webcamVerification.classList.add('d-none');
+                
+                // Proceed to payment
+                ageVerification.classList.add('d-none');
+                stepVerification.classList.remove('active');
+                stepVerification.classList.add('completed');
+                stepPayment.classList.add('active');
+                
+                showPaymentScreen();
+            }, 3000);
         }
     }
     
@@ -796,28 +1086,58 @@ document.addEventListener('DOMContentLoaded', function() {
             resultAlert.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div> Processing image...';
         }
         
-        // Get image data for sending to server (in a real app)
-        // const imageData = webcamCanvas.toDataURL('image/jpeg');
+        // Get image data for sending to server
+        const imageData = webcamCanvas.toDataURL('image/jpeg');
         
-        // Simulate age verification with the server
-        setTimeout(function() {
-            // Always approve in this demo
-            const approved = true;
+        // Get the alcoholic beverage types in the cart
+        const alcoholicBeverages = cartItems
+            .filter(item => item.isAlcoholic)
+            .map(item => item.type);
             
-            if (approved) {
+        const beverage_type = alcoholicBeverages.length > 0 ? alcoholicBeverages[0] : 'beer';
+        
+        // Send to server for verification
+        fetch('/api/verify_age_webcam', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                image_data: imageData,
+                beverage_type: beverage_type
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Webcam verification response:', data);
+            
+            if (data.verified || data.status === 'success') {
                 if (resultAlert) {
                     resultAlert.className = 'alert alert-success';
-                    resultAlert.innerHTML = '<i class="fas fa-check-circle me-2"></i> Verification successful!';
+                    resultAlert.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${data.message || 'Verification successful!'}`;
                 }
                 
                 if (webcamProceedBtn) webcamProceedBtn.classList.remove('d-none');
             } else {
                 if (resultAlert) {
                     resultAlert.className = 'alert alert-danger';
-                    resultAlert.innerHTML = '<i class="fas fa-times-circle me-2"></i> Verification failed. Please try again.';
+                    resultAlert.innerHTML = `<i class="fas fa-times-circle me-2"></i> ${data.message || 'Verification failed. Please try again.'}`;
                 }
             }
-        }, 2500);
+        })
+        .catch(error => {
+            console.error('Error during webcam verification:', error);
+            
+            if (resultAlert) {
+                resultAlert.className = 'alert alert-warning';
+                resultAlert.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Error processing verification. Proceeding anyway (demo mode).';
+            }
+            
+            // For demo purposes, always proceed
+            if (webcamProceedBtn) {
+                webcamProceedBtn.classList.remove('d-none');
+            }
+        });
     }
     
     // Reset the UI to initial state
@@ -844,6 +1164,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (checkoutBtn) checkoutBtn.disabled = true;
         if (processPaymentBtn) processPaymentBtn.disabled = true;
         
+        // Reset quantity
+        if (quantityInput) quantityInput.value = 1;
+        
         // Reset step indicators
         if (stepSelection) stepSelection.classList.remove('completed');
         if (stepSelection) stepSelection.classList.add('active');
@@ -856,6 +1179,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset displays
         if (beverageTypeDisplay) beverageTypeDisplay.textContent = 'None';
         if (cartCount) cartCount.textContent = '0';
+        if (cartTotalPrice) cartTotalPrice.textContent = '€0.00';
         
         // Reset form
         if (verificationForm) {
