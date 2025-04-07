@@ -453,11 +453,13 @@ def api_verify_age():
         return jsonify({"success": False, "message": "No data provided"}), 400
     
     # Extract image and beverage type from JSON
-    image_data_url = data.get('image')
+    image_data_url = data.get('image_data')  # Changed from 'image' to 'image_data' to match client
     beverage_type = data.get('beverage_type', 'beer')
     
     if not image_data_url:
         return jsonify({"success": False, "message": "No image provided"}), 400
+        
+    logger.debug(f"Received verification request for beverage type: {beverage_type}")
     
     try:
         # Extract base64 data from data URL
