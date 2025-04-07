@@ -37,13 +37,20 @@ GPIO_PINS = {
     'WEIGHT_SENSOR_CLK': 19
 }
 
+# Supported languages
+LANGUAGES = ['sk', 'en']
+DEFAULT_LANGUAGE = 'sk'
+
 # Beverage type definitions
 BEVERAGE_TYPES = ['beer', 'kofola', 'birel']
 
 # System parameters for each beverage type
 BEVERAGE_POUR_SETTINGS = {
     'beer': {
-        'NAME': 'Beer',
+        'NAME': {
+            'sk': 'Pivo',
+            'en': 'Beer'
+        },
         'DEFAULT_VOLUME_ML': 500,  # Default volume in milliliters
         'FLOW_RATE_ML_PER_SEC': 40,  # Approximate flow rate 
         'FOAM_HEADSPACE_ML': 50,  # Space to leave for foam
@@ -53,10 +60,14 @@ BEVERAGE_POUR_SETTINGS = {
         'TEMPERATURE_MAX': 7.0,  # Maximum ideal temperature (°C)
         'COLOR': '#FFA500',  # Amber color for beer
         'ICON': 'beer',  # Font Awesome icon name
-        'REQUIRES_AGE_VERIFICATION': True  # Alcoholic beverage requires age verification
+        'REQUIRES_AGE_VERIFICATION': True,  # Alcoholic beverage requires age verification
+        'PRICE': 2.50  # Price in EUR
     },
     'kofola': {
-        'NAME': 'Kofola',
+        'NAME': {
+            'sk': 'Kofola',
+            'en': 'Kofola'
+        },
         'DEFAULT_VOLUME_ML': 400,  # Default volume in milliliters
         'FLOW_RATE_ML_PER_SEC': 50,  # Approximate flow rate 
         'FOAM_HEADSPACE_ML': 30,  # Space to leave for foam
@@ -66,10 +77,14 @@ BEVERAGE_POUR_SETTINGS = {
         'TEMPERATURE_MAX': 5.0,  # Maximum ideal temperature (°C)
         'COLOR': '#4B2D1A',  # Dark brown color for Kofola
         'ICON': 'glass-water',  # Font Awesome icon name
-        'REQUIRES_AGE_VERIFICATION': False  # Non-alcoholic beverage, no age verification needed
+        'REQUIRES_AGE_VERIFICATION': False,  # Non-alcoholic beverage, no age verification needed
+        'PRICE': 1.80  # Price in EUR
     },
     'birel': {
-        'NAME': 'Birel',
+        'NAME': {
+            'sk': 'Birel',
+            'en': 'Birel'
+        },
         'DEFAULT_VOLUME_ML': 500,  # Default volume in milliliters
         'FLOW_RATE_ML_PER_SEC': 45,  # Approximate flow rate 
         'FOAM_HEADSPACE_ML': 40,  # Space to leave for foam
@@ -79,7 +94,8 @@ BEVERAGE_POUR_SETTINGS = {
         'TEMPERATURE_MAX': 6.5,  # Maximum ideal temperature (°C)
         'COLOR': '#FFC857',  # Lighter amber color for Birel
         'ICON': 'beer-mug-empty',  # Font Awesome icon name
-        'REQUIRES_AGE_VERIFICATION': False  # Non-alcoholic beverage, no age verification needed
+        'REQUIRES_AGE_VERIFICATION': False,  # Non-alcoholic beverage, no age verification needed
+        'PRICE': 2.20  # Price in EUR
     }
 }
 

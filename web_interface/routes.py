@@ -6,6 +6,9 @@ import time
 from flask import render_template, request, jsonify, redirect, url_for, session
 from web_interface.app import app
 
+# Get language configuration
+from config import LANGUAGES, DEFAULT_LANGUAGE
+
 logger = logging.getLogger(__name__)
 
 # This will be set when the web interface is initialized in main.py
@@ -33,15 +36,25 @@ def customer():
     """Render the customer ordering interface."""
     if _controller is None:
         return render_template('customer.html', error="System not available")
+    
+    # Get language preference from the query parameter or use default
+    language = request.args.get('lang', DEFAULT_LANGUAGE)
+    if language not in LANGUAGES:
+        language = DEFAULT_LANGUAGE
+    
+    # Set language in session for persistence
+    session['language'] = language
         
     system_state = _controller.get_system_state()
     # Only show customer interface if system is in idle state
     if system_state['state'] != 'idle' and system_state['state'] != 'error':
+        error_message = "Systém je momentálne zaneprázdnený. Počkajte prosím chvíľu." if language == 'sk' else "System is currently busy. Please wait a moment."
         return render_template('customer.html', 
-                              error="System is currently busy. Please wait a moment.",
-                              state=system_state)
+                              error=error_message,
+                              state=system_state,
+                              language=language)
     
-    return render_template('customer.html', state=system_state)
+    return render_template('customer.html', state=system_state, language=language)
 
 
 @app.route('/admin')
@@ -202,6 +215,11 @@ def api_check_age_requirement():
     if _controller is None:
         return jsonify({'error': 'System controller not initialized'}), 500
     
+    # Get language preference from session or use default
+    language = session.get('language', DEFAULT_LANGUAGE) 
+    if language not in LANGUAGES:
+        language = DEFAULT_LANGUAGE
+    
     # Get parameters
     try:
         data = request.json
@@ -223,12 +241,14 @@ def api_check_age_requirement():
                     beverage_settings = BEVERAGE_POUR_SETTINGS[beverage_type]
                     if beverage_settings.get('REQUIRES_AGE_VERIFICATION', True):
                         requires_verification = True
-                        alcoholic_beverages.append(beverage_settings.get('NAME', beverage_type))
+                        beverage_name = beverage_settings.get('NAME', {}).get(language, beverage_type)
+                        alcoholic_beverages.append(beverage_name)
             
             return jsonify({
                 'requires_verification': requires_verification,
                 'alcoholic_beverages': alcoholic_beverages,
-                'minimum_age': 21  # Hard-coded to 21 since beer is the only alcoholic option
+                'minimum_age': 21,  # Hard-coded to 21 since beer is the only alcoholic option
+                'language': language
             })
         
         # Single beverage check (backwards compatibility)
@@ -245,10 +265,13 @@ def api_check_age_requirement():
         beverage_settings = BEVERAGE_POUR_SETTINGS[beverage_type]
         requires_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)  # Default to requiring verification
         
+        beverage_name = beverage_settings.get('NAME', {}).get(language, beverage_type)
+        
         return jsonify({
             'requires_verification': requires_verification,
-            'beverage_name': beverage_settings.get('NAME', beverage_type),
-            'minimum_age': 21 if beverage_type == 'beer' else 18
+            'beverage_name': beverage_name,
+            'minimum_age': 21 if beverage_type == 'beer' else 18,
+            'language': language
         })
     
     except Exception as e:
@@ -353,6 +376,11 @@ def api_verify_age_webcam():
     if _controller is None:
         return jsonify({'error': 'System controller not initialized'}), 500
     
+    # Get language preference from session or use default
+    language = session.get('language', DEFAULT_LANGUAGE) 
+    if language not in LANGUAGES:
+        language = DEFAULT_LANGUAGE
+        
     try:
         # Get the beverage type from the request
         data = request.json
