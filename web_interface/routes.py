@@ -28,9 +28,12 @@ def set_controller(controller):
 @app.route('/')
 def index():
     """Redirect to customer interface."""
-    # Get any persisted keep_progress state
-    keep_progress = session.get('keep_progress', False)
-    return redirect(url_for('customer', keepProgress='true' if keep_progress else 'false'))
+    # Reset session to start fresh
+    session.clear()
+    session['language'] = 'sk'
+    session['keep_progress'] = False
+    logger.info("Starting fresh session")
+    return redirect(url_for('customer', keepProgress='false'))
 
 
 @app.route('/customer', methods=['GET', 'POST'])
