@@ -231,6 +231,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Save state
+        // Automatically proceed to next screen after a short delay
+        setTimeout(() => {
+            showScreen('beverage-size-selection');
+        }, 300);
         saveState();
     }
     
@@ -259,6 +263,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Save state
+        // Enable the continue button
+        const goToCartBtn = document.getElementById("go-to-cart-btn");
+        if (goToCartBtn) {
+            goToCartBtn.disabled = false;
+            
+            // Add click event if not already added
+            if (!goToCartBtn.hasAttribute("data-event-attached")) {
+                goToCartBtn.addEventListener("click", () => {
+                    showScreen("cart");
+                });
+                goToCartBtn.setAttribute("data-event-attached", "true");
+            }
+        }
+
+        // Automatically proceed to add-to-quantity-selection screen after a short delay
+        setTimeout(() => {
+            showScreen("cart");
+        }, 300);
         saveState();
     }
     
@@ -335,6 +357,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Save state
+        // Automatically go back to beverage selection after adding to cart
+        setTimeout(() => {
+            showScreen("beverage-type-selection");
+        }, 1000);
         saveState();
     }
     
