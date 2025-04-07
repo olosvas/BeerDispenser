@@ -90,25 +90,41 @@ def api_state():
 
 @app.route('/api/dispense', methods=['POST'])
 def api_dispense():
-    """API endpoint to trigger beer dispensing."""
+    """API endpoint to trigger beverage dispensing."""
     if _controller is None:
         return jsonify({'error': 'System controller not initialized'}), 500
     
-    # Get volume parameter if provided
+    # Get parameters
     try:
-        volume = request.json.get('volume')
-        if volume is not None:
-            volume = float(volume)
-    except:
-        return jsonify({'error': 'Invalid volume parameter'}), 400
+        data = request.json
+        volume_ml = data.get('volume_ml')
+        beverage_type = data.get('beverage_type', 'beer')  # Default to beer if not specified
+        
+        if volume_ml is not None:
+            volume_ml = float(volume_ml)
+            
+        # Validate beverage type
+        from config import BEVERAGE_TYPES
+        if beverage_type not in BEVERAGE_TYPES:
+            return jsonify({'error': f'Invalid beverage type. Supported types: {", ".join(BEVERAGE_TYPES)}'}), 400
+            
+    except Exception as e:
+        logger.error(f"Error parsing dispense request: {str(e)}")
+        return jsonify({'error': 'Invalid parameters'}), 400
     
     # Start dispensing operation
-    success = _controller.dispense_beer(volume)
+    success = _controller.dispense_beer(volume_ml=volume_ml, beverage_type=beverage_type)
     
     if success:
-        return jsonify({'status': 'success', 'message': 'Dispensing operation started'})
+        return jsonify({
+            'success': True, 
+            'message': f'Dispensing {beverage_type} ({volume_ml}ml) started'
+        })
     else:
-        return jsonify({'status': 'error', 'message': 'Could not start dispensing operation'}), 409
+        return jsonify({
+            'success': False, 
+            'message': 'Could not start dispensing operation'
+        }), 409
 
 
 @app.route('/api/stop', methods=['POST'])
@@ -179,48 +195,62 @@ def api_reset_stats():
 
 @app.route('/api/verify_age', methods=['POST'])
 def api_verify_age():
-    """API endpoint to verify customer age for beer dispensing."""
+    """API endpoint to verify customer age for beverage dispensing."""
     if _controller is None:
         return jsonify({'error': 'System controller not initialized'}), 500
     
     # Get verification data
     try:
         data = request.json
-        fullname = data.get('fullname')
-        birthdate = data.get('birthdate')
         id_number = data.get('id_number')
+        birth_date = data.get('birth_date')
+        beverage_type = data.get('beverage_type', 'beer')  # Default to beer if not specified
         
         # Validate required fields
-        if not all([fullname, birthdate, id_number]):
-            return jsonify({'status': 'error', 'message': 'All fields are required'}), 400
+        if not all([id_number, birth_date]):
+            return jsonify({'status': 'error', 'message': 'ID number and birth date are required'}), 400
         
         # Parse birthdate
         from datetime import datetime
         try:
-            birth_date = datetime.strptime(birthdate, '%Y-%m-%d')
+            birth_date_obj = datetime.strptime(birth_date, '%Y-%m-%d')
             today = datetime.now()
-            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+            age = today.year - birth_date_obj.year - ((today.month, today.day) < (birth_date_obj.month, birth_date_obj.day))
             
-            # Check legal drinking age (21)
-            if age < 21:
+            # Determine if age verification is needed based on beverage type
+            needs_verification = beverage_type in ['beer', 'birel']  # Only beer requires age verification
+            minimum_age = 21 if beverage_type == 'beer' else 18  # Different age limits for different beverages
+            
+            # For non-alcoholic beverages like Kofola, no age verification is needed
+            if beverage_type == 'kofola':
+                logger.info(f"No age verification needed for {beverage_type}")
+                return jsonify({
+                    'status': 'success',
+                    'message': 'No age verification needed for this beverage',
+                    'verified': True,
+                })
+                
+            # Check legal drinking age
+            if needs_verification and age < minimum_age:
                 return jsonify({
                     'status': 'error', 
-                    'message': 'You must be at least 21 years old to order beer.',
+                    'message': f'You must be at least {minimum_age} years old to order {beverage_type}.',
                     'verified': False
                 }), 403
                 
             # Store verification in session
             session['age_verified'] = True
-            session['fullname'] = fullname
+            session['beverage_type'] = beverage_type
             
             # In a real system, we'd log the verification for legal purposes
-            logger.info(f"Age verification successful for {fullname} (ID: {id_number}, Age: {age})")
+            logger.info(f"Age verification successful for ID: {id_number}, Age: {age}, Beverage: {beverage_type}")
             
             return jsonify({
                 'status': 'success',
                 'message': 'Age verification successful',
                 'verified': True,
-                'age': age
+                'age': age,
+                'beverage_type': beverage_type
             })
             
         except ValueError:

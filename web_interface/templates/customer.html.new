@@ -656,12 +656,12 @@ document.addEventListener('DOMContentLoaded', function() {
             dispensingStepCup.innerHTML = '<i class="fas fa-circle-notch fa-spin text-primary me-2"></i> Dispensing cup...';
             dispensingStepPour.innerHTML = '<i class="fas fa-circle text-muted me-2"></i> Pouring beverage...';
             dispensingStepDeliver.innerHTML = '<i class="fas fa-circle text-muted me-2"></i> Delivering to pickup station...';
-        } else if (state === 'pouring_beverage') {
+        } else if (state === 'pouring_beer') {
             dispensingStepCup.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i> Cup dispensed';
             dispensingStepPour.innerHTML = '<i class="fas fa-circle-notch fa-spin text-primary me-2"></i> Pouring beverage...';
             dispensingStepDeliver.innerHTML = '<i class="fas fa-circle text-muted me-2"></i> Delivering to pickup station...';
             
-            // Animate the beverage pouring
+            // Animate the beer pouring
             liquid.style.height = '80%';
             foam.style.bottom = '80%';
         } else if (state === 'delivering_cup') {

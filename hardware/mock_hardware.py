@@ -8,6 +8,8 @@ import random
 import logging
 import threading
 from config import (
+    BEVERAGE_TYPES,
+    BEVERAGE_POUR_SETTINGS,
     BEER_POUR_SETTINGS,
     CUP_SETTINGS,
     DELIVERY_SETTINGS
@@ -60,21 +62,25 @@ class MockCupDispenser:
 
 
 class MockBeerDispenser:
-    """Mock implementation of beer dispenser hardware."""
+    """Mock implementation of beverage dispenser hardware."""
     
     def __init__(self):
-        """Initialize the mock beer dispenser."""
+        """Initialize the mock beverage dispenser."""
         self.initialized = False
-        self.valve_open = False
+        self.valve_open = {
+            'beer': False,
+            'kofola': False,
+            'birel': False
+        }
         self.pouring = False
         self.flow_count = 0
-        self.default_volume = BEER_POUR_SETTINGS['DEFAULT_VOLUME_ML']
+        self.current_beverage = 'beer'  # Default beverage type
         self.pour_thread = None
         self.stop_pouring = False
         logger.debug("Mock beer dispenser initialized")
     
     def initialize(self):
-        """Set up the mock beer dispenser."""
+        """Set up the mock beverage dispenser."""
         self.initialized = True
         return True
     
@@ -82,18 +88,34 @@ class MockBeerDispenser:
         """Simulate flow sensor pulse."""
         self.flow_count += 1
     
-    def pour_beer(self, volume_ml=None):
-        """Simulate pouring beer."""
+    def pour_beer(self, volume_ml=None, beverage_type=None):
+        """
+        Simulate pouring a beverage.
+        
+        Args:
+            volume_ml (float, optional): Volume to pour in milliliters.
+            beverage_type (str, optional): Type of beverage to pour ('beer', 'kofola', or 'birel').
+        
+        Returns:
+            bool: True if pouring started successfully, False otherwise
+        """
         if not self.initialized:
-            logger.error("Beer dispenser not initialized")
+            logger.error("Beverage dispenser not initialized")
             return False
         
         if self.pouring:
-            logger.error("Already pouring beer")
+            logger.error("Already pouring a beverage")
             return False
         
+        # Set current beverage type
+        if beverage_type and beverage_type in BEVERAGE_TYPES:
+            self.current_beverage = beverage_type
+        
+        # Get settings for the current beverage
+        settings = BEVERAGE_POUR_SETTINGS[self.current_beverage]
+        
         # Use specified volume or default
-        volume = volume_ml if volume_ml is not None else self.default_volume
+        volume = volume_ml if volume_ml is not None else settings['DEFAULT_VOLUME_ML']
         
         # Reset flow count and set pouring state
         self.flow_count = 0
@@ -110,24 +132,27 @@ class MockBeerDispenser:
         
         if not success:
             self.stop_pour()
-            logger.error("Failed to start beer pour")
+            logger.error(f"Failed to start {settings['NAME']} pour")
         else:
-            logger.debug(f"Pouring {volume}ml of beer")
+            logger.debug(f"Pouring {volume}ml of {settings['NAME']}")
         
         return success
     
     def _pour_simulation(self, volume):
         """Simulate the pouring process in a separate thread."""
+        # Get settings for the current beverage
+        settings = BEVERAGE_POUR_SETTINGS[self.current_beverage]
+        
         # Simulate valve opening
-        self.valve_open = True
+        self.valve_open[self.current_beverage] = True
         
         # Calculate pour time based on volume and flow rate
-        flow_rate = BEER_POUR_SETTINGS['FLOW_RATE_ML_PER_SEC']
+        flow_rate = settings['FLOW_RATE_ML_PER_SEC']
         pour_time = volume / flow_rate
         
         # Simulate slow pour for foam control
-        slow_threshold = volume * BEER_POUR_SETTINGS['SLOW_POUR_THRESHOLD']
-        slow_rate = BEER_POUR_SETTINGS['SLOW_POUR_RATE']
+        slow_threshold = volume * settings['SLOW_POUR_THRESHOLD']
+        slow_rate = settings['SLOW_POUR_RATE']
         
         start_time = time.time()
         elapsed = 0
@@ -155,7 +180,7 @@ class MockBeerDispenser:
             time.sleep(0.1)
         
         # Pouring complete or stopped
-        self.valve_open = False
+        self.valve_open[self.current_beverage] = False
         self.pouring = False
         
         if not self.stop_pouring:
@@ -171,26 +196,53 @@ class MockBeerDispenser:
         """Simulate emergency stop for pouring."""
         if self.pouring:
             self.stop_pouring = True
-            logger.debug("Beer pour stopped")
+            logger.debug(f"{BEVERAGE_POUR_SETTINGS[self.current_beverage]['NAME']} pour stopped")
             if self.pour_thread and self.pour_thread.is_alive():
                 self.pour_thread.join(1.0)  # Wait for pour thread to finish
-            self.valve_open = False
+            self.valve_open[self.current_beverage] = False
             self.pouring = False
             return True
         return False
     
     def get_beer_temperature(self):
-        """Simulate reading the beer temperature."""
-        # Generate random temperature between 4°C and 7°C
-        temp = random.uniform(4.0, 7.0)
+        """Simulate reading the beverage temperature."""
+        # Get settings for the current beverage
+        settings = BEVERAGE_POUR_SETTINGS[self.current_beverage]
+        
+        # Generate random temperature between min and max for this beverage
+        temp = random.uniform(settings['TEMPERATURE_MIN'], settings['TEMPERATURE_MAX'])
         logger.debug(f"Beer temperature: {temp:.1f}°C")
         return temp
+    
+    def set_beverage_type(self, beverage_type):
+        """
+        Set the current beverage type.
+        
+        Args:
+            beverage_type (str): Type of beverage ('beer', 'kofola', or 'birel')
+            
+        Returns:
+            bool: True if successfully set, False otherwise
+        """
+        if beverage_type in BEVERAGE_TYPES:
+            self.current_beverage = beverage_type
+            return True
+        return False
+    
+    def get_current_beverage(self):
+        """
+        Get the current beverage type.
+        
+        Returns:
+            str: Current beverage type
+        """
+        return self.current_beverage
     
     def cleanup(self):
         """Release mock resources."""
         self.stop_pour()
         self.initialized = False
-        logger.debug("Beer dispenser cleaned up")
+        logger.debug("Beverage dispenser cleaned up")
         return True
 
 

@@ -6,7 +6,7 @@ import logging
 import threading
 from hardware import CupDispenser, BeerDispenser, CupDelivery, SystemMonitor
 from controllers.error_handler import ErrorHandler
-from config import SYSTEM_STATES
+from config import SYSTEM_STATES, BEVERAGE_POUR_SETTINGS, BEVERAGE_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -90,12 +90,18 @@ class MainController:
         # Get sensor data
         sensor_data = self.system_monitor.get_sensor_data()
         
+        # Get the current beverage type if available
+        current_beverage = None
+        if hasattr(self.beer_dispenser, 'get_current_beverage'):
+            current_beverage = self.beer_dispenser.get_current_beverage()
+        
         # Combine all information
         state_info = {
             'state': state,
             'stats': stats_copy,
             'sensors': sensor_data,
-            'beer_temp': self.beer_dispenser.get_beer_temperature()
+            'beer_temp': self.beer_dispenser.get_beer_temperature(),
+            'current_beverage': current_beverage or 'beer'
         }
         
         return state_info
@@ -113,12 +119,13 @@ class MainController:
         
         logger.info(f"System state changed: {previous_state} -> {new_state}")
     
-    def dispense_beer(self, volume_ml=None):
+    def dispense_beer(self, volume_ml=None, beverage_type=None):
         """
-        Start the beer dispensing sequence in a separate thread.
+        Start the beverage dispensing sequence in a separate thread.
         
         Args:
             volume_ml (float, optional): Volume to pour in milliliters.
+            beverage_type (str, optional): Type of beverage to pour ('beer', 'kofola', or 'birel').
         
         Returns:
             bool: True if operation started successfully, False otherwise
@@ -132,21 +139,26 @@ class MainController:
         # Start operation in a separate thread
         self.operation_thread = threading.Thread(
             target=self._dispense_sequence,
-            args=(volume_ml,),
+            args=(volume_ml, beverage_type),
             daemon=True
         )
         self.operation_thread.start()
         return True
     
-    def _dispense_sequence(self, volume_ml=None):
+    def _dispense_sequence(self, volume_ml=None, beverage_type=None):
         """
-        Execute the complete beer dispensing sequence.
+        Execute the complete beverage dispensing sequence.
         
         Args:
             volume_ml (float, optional): Volume to pour in milliliters.
+            beverage_type (str, optional): Type of beverage to pour ('beer', 'kofola', or 'birel').
         """
         start_time = time.time()
         success = False
+        
+        # If beverage type is provided, set it in the beer dispenser
+        if beverage_type and hasattr(self.beer_dispenser, 'set_beverage_type'):
+            self.beer_dispenser.set_beverage_type(beverage_type)
         
         try:
             # 1. Dispense cup
@@ -158,15 +170,19 @@ class MainController:
             with self.stats_lock:
                 self.stats['cups_dispensed'] += 1
             
-            # 2. Pour beer
-            self._set_state(SYSTEM_STATES['POURING_BEER'])
-            if not self.beer_dispenser.pour_beer(volume_ml):
-                raise Exception("Beer pouring failed")
+            # 2. Pour beverage
+            self._set_state(SYSTEM_STATES['POURING_BEER'])  # 'POURING_BEER' is mapped to 'pouring_beverage' in config
+            if not self.beer_dispenser.pour_beer(volume_ml, beverage_type):
+                current_beverage_type = beverage_type or 'beer'
+                raise Exception(f"{BEVERAGE_POUR_SETTINGS[current_beverage_type]['NAME']} pouring failed")
             
             # Update statistics
+            current_beverage_type = beverage_type or 'beer'
+            actual_volume = volume_ml if volume_ml is not None else BEVERAGE_POUR_SETTINGS[current_beverage_type]['DEFAULT_VOLUME_ML']
+            
             with self.stats_lock:
                 self.stats['beers_poured'] += 1
-                self.stats['total_volume_ml'] += volume_ml if volume_ml else self.beer_dispenser.default_volume
+                self.stats['total_volume_ml'] += actual_volume
             
             # 3. Deliver cup
             self._set_state(SYSTEM_STATES['DELIVERING_CUP'])
