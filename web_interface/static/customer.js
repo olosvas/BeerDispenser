@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const verifyAgeBtn = document.getElementById("verify-age-btn");
     const verificationForm = document.getElementById("verification-form");
     const webcamVerification = document.getElementById("webcam-verification");
-    const webcamVerification = document.getElementById("webcam-verification");
     const webcamCanvas = document.getElementById("webcam-canvas");
     const webcamPlaceholder = document.getElementById("webcam-placeholder");
     const webcamStartBtn = document.getElementById("webcam-start-btn");
