@@ -1,10 +1,13 @@
 <div class="language-switcher-simple">
-    <div class="btn-group float-end mb-3">
-        <a href="?lang=sk" class="btn btn-sm {% if language == 'sk' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-            <img src="/static/flags/sk.svg" width="24" height="16" alt="Slovak" title="Slovenčina">
+    <div class="float-end mb-3">
+        {% if language == 'sk' %}
+        <a href="?lang=en" class="btn btn-outline-primary">
+            <img src="/static/flags/en.svg" width="36" height="24" alt="English" title="Switch to English">
         </a>
-        <a href="?lang=en" class="btn btn-sm {% if language == 'en' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-            <img src="/static/flags/en.svg" width="24" height="16" alt="English" title="English">
+        {% else %}
+        <a href="?lang=sk" class="btn btn-outline-primary">
+            <img src="/static/flags/sk.svg" width="36" height="24" alt="Slovenčina" title="Prepnúť na slovenčinu">
         </a>
+        {% endif %}
     </div>
 </div>
