@@ -438,6 +438,46 @@ def api_dispense():
         }), 400
 
 
+@app.route('/api/get_state', methods=['GET'])
+def api_get_state():
+    """Get the current UI state from session."""
+    try:
+        state = session.get('ui_state', {}) 
+        return jsonify({
+            "success": True,
+            "state": state
+        })
+    except Exception as e:
+        logger.error(f"Error getting state: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Error retrieving state",
+            "error": str(e)
+        }), 500
+
+@app.route('/api/save_state', methods=['POST'])
+def api_save_state():
+    """Save UI state to session."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+        
+        # Save the state to session
+        session['ui_state'] = data
+        return jsonify({
+            "success": True,
+            "message": "State saved successfully",
+            "currentScreen": data.get('currentScreen')
+        })
+    except Exception as e:
+        logger.error(f"Error saving state: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": "Error saving state",
+            "error": str(e)
+        }), 500
+
 @app.route('/api/verify_age', methods=['POST'])
 def api_verify_age():
     """Handle age verification requests from the JavaScript frontend."""
