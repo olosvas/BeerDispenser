@@ -4,8 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedSize = null;
     // State Management functions
     let cartItems = [];
-    // State Management functions
-    let cartItems = [];
+    
+    // Function to save current state to server
     
     // Function to save current state to server
     function saveStateToServer() {
