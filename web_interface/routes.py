@@ -36,6 +36,17 @@ def index():
     return redirect(url_for('customer', keepProgress='false'))
 
 
+@app.route('/admin')
+def admin():
+    """Render the admin dashboard interface."""
+    # Access control logic could be implemented here
+    if _controller is None:
+        return render_template('admin.html', error="System not available")
+    
+    system_state = _controller.get_system_state()
+    return render_template('admin.html', state=system_state)
+
+
 @app.route('/customer', methods=['GET', 'POST'])
 def customer():
     """Render the customer ordering interface."""

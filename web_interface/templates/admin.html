@@ -1,0 +1,305 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    .card-counter {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        padding: 20px 10px;
+        background-color: #fff;
+        height: 100px;
+        border-radius: 5px;
+        transition: .3s linear all;
+        margin-bottom: 20px;
+    }
+    .card-counter .count-icon {
+        font-size: 4em;
+        opacity: 0.2;
+    }
+    .card-counter .count-numbers {
+        position: absolute;
+        right: 20px;
+        top: 15px;
+        font-size: 32px;
+        display: block;
+    }
+    .card-counter .count-name {
+        position: absolute;
+        right: 20px;
+        top: 55px;
+        opacity: 0.8;
+        display: block;
+        font-size: 18px;
+    }
+    .card-counter.primary {
+        background-color: var(--bs-primary);
+        color: #FFF;
+    }
+    .card-counter.danger {
+        background-color: var(--bs-danger);
+        color: #FFF;
+    }
+    .card-counter.success {
+        background-color: var(--bs-success);
+        color: #FFF;
+    }
+    .card-counter.info {
+        background-color: var(--bs-info);
+        color: #FFF;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Admin Dashboard</h1>
+            <p class="lead">Monitor and manage the beer dispensing system</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <!-- System Status Card -->
+        <div class="col-md-3">
+            <div class="card-counter primary">
+                <i class="fas fa-server count-icon"></i>
+                <span class="count-numbers">{{ state.state|default('idle')|upper }}</span>
+                <span class="count-name">System Status</span>
+            </div>
+        </div>
+
+        <!-- Beverages Dispensed Card -->
+        <div class="col-md-3">
+            <div class="card-counter success">
+                <i class="fas fa-beer count-icon"></i>
+                <span class="count-numbers">{{ state.stats.beverages_dispensed|default(0) }}</span>
+                <span class="count-name">Beverages Dispensed</span>
+            </div>
+        </div>
+
+        <!-- Error Count Card -->
+        <div class="col-md-3">
+            <div class="card-counter danger">
+                <i class="fas fa-exclamation-triangle count-icon"></i>
+                <span class="count-numbers">{{ state.stats.error_count|default(0) }}</span>
+                <span class="count-name">Errors</span>
+            </div>
+        </div>
+
+        <!-- Uptime Card -->
+        <div class="col-md-3">
+            <div class="card-counter info">
+                <i class="fas fa-clock count-icon"></i>
+                <span class="count-numbers">{{ state.stats.uptime|default('0h') }}</span>
+                <span class="count-name">System Uptime</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">System Controls</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('control') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-cogs me-2"></i> Control Panel
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{{ url_for('status') }}" class="btn btn-info w-100">
+                                <i class="fas fa-chart-line me-2"></i> Status Dashboard
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="maintenance-mode-btn" class="btn btn-warning w-100">
+                                <i class="fas fa-tools me-2"></i> Maintenance Mode
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button id="emergency-stop-btn" class="btn btn-danger w-100">
+                                <i class="fas fa-stop-circle me-2"></i> Emergency Stop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Latest Activity</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush" id="activity-log">
+                        {% if state.logs %}
+                            {% for log in state.logs %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ log.message }}
+                                    <span class="badge bg-primary rounded-pill">{{ log.timestamp }}</span>
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="list-group-item">No activity logged yet</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Beverage Inventory</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Beverage Type</th>
+                                    <th>Stock Level</th>
+                                    <th>Status</th>
+                                    <th>Last Refilled</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><i class="fas fa-beer me-2"></i> Beer</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">75%</div>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-success">OK</span></td>
+                                    <td>2025-04-05 10:15</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary">Refill</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-coffee me-2"></i> Kofola</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 30%;" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100">30%</div>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-warning">Low</span></td>
+                                    <td>2025-04-03 14:22</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary">Refill</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><i class="fas fa-wine-bottle me-2"></i> Birel</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: 85%;" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100">85%</div>
+                                        </div>
+                                    </td>
+                                    <td><span class="badge bg-success">OK</span></td>
+                                    <td>2025-04-06 09:30</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary">Refill</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Emergency stop button handler
+    const emergencyStopBtn = document.getElementById('emergency-stop-btn');
+    if (emergencyStopBtn) {
+        emergencyStopBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to trigger an emergency stop?')) {
+                fetch('/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.status === 'stopped' ? 'System successfully stopped!' : 'Failed to stop system');
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error stopping system:', error);
+                    alert('Error stopping system: ' + error);
+                });
+            }
+        });
+    }
+
+    // Maintenance mode button handler
+    const maintenanceModeBtn = document.getElementById('maintenance-mode-btn');
+    if (maintenanceModeBtn) {
+        maintenanceModeBtn.addEventListener('click', function() {
+            const currentState = '{{ state.state|default("idle") }}';
+            const enterMaintenance = currentState !== 'maintenance';
+            
+            if (confirm(`Are you sure you want to ${enterMaintenance ? 'enter' : 'exit'} maintenance mode?`)) {
+                fetch('/maintenance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mode: enterMaintenance ? 'enter' : 'exit'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.status ? data.status : 'Failed to change maintenance mode');
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error changing maintenance mode:', error);
+                    alert('Error changing maintenance mode: ' + error);
+                });
+            }
+        });
+    }
+    
+    // Auto-update activity log
+    setInterval(function() {
+        fetch('/status')
+        .then(response => response.json())
+        .then(data => {
+            const activityLog = document.getElementById('activity-log');
+            if (activityLog && data.logs && data.logs.length > 0) {
+                activityLog.innerHTML = '';
+                data.logs.forEach(log => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.innerHTML = `
+                        ${log.message}
+                        <span class="badge bg-primary rounded-pill">${log.timestamp}</span>
+                    `;
+                    activityLog.appendChild(li);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error updating activity log:', error);
+        });
+    }, 5000);
+});
+</script>
+{% endblock %}
