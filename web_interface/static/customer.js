@@ -716,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.verified) {
                     // Success
                     if (statusElement) {
-                        statusElement.textContent = "Vek úspešne overený! Začínam čapovanie...";
+                        statusElement.textContent = "Vek úspešne overený! Pokračujem na platbu...";
                         statusElement.parentElement.className = "alert alert-success";
                     }
                     
@@ -726,24 +726,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         ageElement.textContent = `Odhadovaný vek: ${data.estimated_age} rokov`;
                     }
                     
-                    // Show proceed button
-                    const proceedBtn = document.getElementById('webcam-proceed-btn');
-                    if (proceedBtn) {
-                        proceedBtn.classList.remove('d-none');
-                    }
+                    // We don't need the proceed button anymore
+                    // const proceedBtn = document.getElementById('webcam-proceed-btn');
+                    // if (proceedBtn) {
+                    //     proceedBtn.classList.remove('d-none');
+                    // }
                     
-                    // Proceed to dispensing after delay
+                    // Proceed to payment screen immediately
                     setTimeout(() => {
                         hideAllScreens();
-                        if (dispensingScreen) dispensingScreen.classList.remove('d-none');
-                        if (stepDispensing) stepDispensing.classList.add('active');
+                        if (paymentScreen) paymentScreen.classList.remove('d-none');
+                        if (stepPayment) stepPayment.classList.add('active');
                         
                         // Stop webcam
                         stopWebcam();
                         
-                        // Start dispensing
-                        startDispensing();
-                    }, 3000);
+                        // Show success message
+                        displayMessage("Overenie veku úspešné! Prejdite k platbe.", "success");
+                    }, 1500);
+                    if (stepDispensing) stepDispensing.classList.add('active');
+                    
+                    // Stop webcam
+                    stopWebcam();
+                    
+                    // Start dispensing
+                    startDispensing();
                 } else {
                     // Failed verification
                     if (statusElement) {
@@ -844,12 +851,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('Error starting dispensing:', error);
             if (statusElement) {
-                statusElement.textContent = "Server error. Please try again or seek assistance.";
-                statusElement.className = "text-danger";
-            }
-        });
-    }
-    
     function monitorOrderProgress() {
         const statusElement = document.getElementById('dispensing-status');
         const progressElement = document.getElementById('dispensing-progress');
@@ -857,9 +858,18 @@ document.addEventListener('DOMContentLoaded', function() {
         let checkCount = 0;
         const maxChecks = 30; // Avoid infinite polling
         
+        // Reset the progress and countdown at the start
+        let dispensingComplete = false;
+        
         // Poll the server for status updates
         const statusInterval = setInterval(() => {
             checkCount++;
+            
+            // If dispensing is already complete, don't make more requests
+            if (dispensingComplete) {
+                clearInterval(statusInterval);
+                return;
+            }
             
             fetch('/api/dispensing_status')
                 .then(response => response.json())
@@ -869,6 +879,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Check if dispensing is complete
                     if (data.state === 'complete' || data.progress >= 100) {
+                        dispensingComplete = true;
                         clearInterval(statusInterval);
                         showOrderComplete();
                     }
@@ -876,6 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Check for timeout or errors
                     if (checkCount >= maxChecks || data.state === 'error') {
                         clearInterval(statusInterval);
+                        dispensingComplete = true;
                         if (data.state !== 'complete') {
                             // Show error if not complete
                             if (statusElement) {
@@ -883,6 +895,22 @@ document.addEventListener('DOMContentLoaded', function() {
                                 statusElement.className = "text-danger";
                             }
                         }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking status:', error);
+                    // Don't immediately clear interval on network errors
+                    if (checkCount >= maxChecks) {
+                        clearInterval(statusInterval);
+                        dispensingComplete = true;
+                        if (statusElement) {
+                            statusElement.textContent = "Error communicating with server. Please seek assistance.";
+                            statusElement.className = "text-danger";
+                        }
+                    }
+                });
+        }, 1000); // Check every second
+    }
                     }
                 })
                 .catch(error => {
