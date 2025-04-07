@@ -38,163 +38,126 @@ def index():
 
 @app.route('/admin')
 def admin():
-    """Render the admin dashboard interface."""
-    # Access control logic could be implemented here
-    if _controller is None:
-        return render_template('admin.html', error="System not available")
-    
-    system_state = _controller.get_system_state()
-    return render_template('admin.html', state=system_state)
-
-
-@app.route('/customer', methods=['GET', 'POST'])
-def customer():
-    """Render the customer ordering interface."""
-    if _controller is None:
-        return render_template('customer.html', error="System not available")
-    
-    # Get language preference from the query parameter or session
-    language = request.args.get('lang')
-    if not language:
-        language = session.get('language', DEFAULT_LANGUAGE)
-    
-    # Validate language and set default if invalid
-    if language not in LANGUAGES:
-        language = DEFAULT_LANGUAGE
-    
-    # Always update session with current language
-    session['language'] = language
-    
-    # Check if we need to keep progress visible and cart state
-    # First check query param, then fall back to session value
-    keep_progress_param = request.args.get('keepProgress') 
-    if keep_progress_param is not None:
-        keep_progress = keep_progress_param == 'true'
-    else:
-        keep_progress = session.get('keep_progress', False)
-    
-    # Save to session for persistence across requests
-    session['keep_progress'] = keep_progress
-    
-    # Check for cart state parameters (coming from AJAX call)
-    if request.method == 'POST' and request.is_json:
-        data = request.get_json()
-        if 'cart_items' in data:
-            session['cart_items'] = data.get('cart_items', [])
-        if 'selected_beverage' in data:
-            session['selected_beverage'] = data.get('selected_beverage')
-        if 'selected_size' in data:
-            session['selected_size'] = data.get('selected_size')
-        if 'current_screen' in data:
-            session['current_screen'] = data.get('current_screen')
-        return jsonify({'success': True})
-    
-    # Pass cart and UI state to template
-    cart_items = session.get('cart_items', [])
-    selected_beverage = session.get('selected_beverage')
-    selected_size = session.get('selected_size')
-    current_screen = session.get('current_screen')
-    
-    # Log language and state for debugging
-    logger.debug(f"Using language: {language}, keep_progress: {keep_progress}, session: {session}")
-        
-    system_state = _controller.get_system_state()
-    # Only show customer interface if system is in idle state
-    if system_state['state'] != 'idle' and system_state['state'] != 'error':
-        error_message = "Systém je momentálne zaneprázdnený. Počkajte prosím chvíľu." if language == 'sk' else "System is currently busy. Please wait a moment."
-        return render_template('customer.html', 
-                              error=error_message,
-                              state=system_state,
-                              language=language,
-                              keep_progress=keep_progress,
-                              cart_items=cart_items,
-                              selected_beverage=selected_beverage,
-                              selected_size=selected_size,
-                              current_screen=current_screen)
-    
-    return render_template('customer.html', 
-                          state=system_state, 
-                          language=language, 
-                          keep_progress=keep_progress,
-                          cart_items=cart_items,
-                          selected_beverage=selected_beverage,
-                          selected_size=selected_size,
-                          current_screen=current_screen)
-
-
-@app.route('/switch_language')
-def switch_language():
-    """Handle language switch."""
-    # Get current language
-    current_language = session.get('language', DEFAULT_LANGUAGE)
-    
-    # Get new language (toggle between available languages)
-    new_language = LANGUAGES[1] if current_language == LANGUAGES[0] else LANGUAGES[0]
-    
-    # Update session
-    session['language'] = new_language
-
-    # Preserve progress state during language switch
-    keep_progress = session.get('keep_progress', False)
-    
-    # Redirect back to the page where the language switch was triggered
-    return redirect(url_for('customer', lang=new_language, keepProgress='true' if keep_progress else 'false'))
+    """Admin interface for the beer dispensing system."""
+    return render_template('admin.html')
 
 
 @app.route('/control')
 def control():
-    """Render the control panel interface."""
-    # Access control logic could be implemented here
-    if _controller is None:
-        return render_template('control.html', error="System not available")
-    
-    system_state = _controller.get_system_state()
-    return render_template('control.html', state=system_state)
+    """Control panel for the beer dispensing system."""
+    return render_template('control.html')
 
 
 @app.route('/status')
 def status():
-    """Return the current system status as JSON."""
+    """System status page."""
+    return render_template('status.html')
+
+
+@app.route('/customer')
+@app.route('/customer/')
+def customer():
+    """Customer interface for the beer dispensing system."""
+    # Get language preference
+    language = request.args.get('language', session.get('language', DEFAULT_LANGUAGE))
+    
+    # Check if it's a valid language
+    if language not in LANGUAGES:
+        language = DEFAULT_LANGUAGE
+    
+    # Store in session
+    session['language'] = language
+    
+    # Check if should keep progress
+    keep_progress = request.args.get('keepProgress', 'false').lower() == 'true'
+    session['keep_progress'] = keep_progress
+    
+    logger.info(f"Rendering customer interface with language: {language}, keep_progress: {keep_progress}")
+    
+    # Render template with language context
+    return render_template('customer.html', language=language)
+
+
+@app.route('/api/system/status')
+def system_status():
+    """Get system status information."""
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
-    system_state = _controller.get_system_state()
-    return jsonify(system_state)
+    status = _controller.get_system_status()
+    
+    # Add additional information for the UI
+    status['server_time'] = time.time()
+    status['server_formatted_time'] = time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    return jsonify(status)
 
 
-@app.route('/dispense', methods=['POST'])
+@app.route('/api/system/reset', methods=['POST'])
+def system_reset():
+    """Reset the system."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    try:
+        _controller.reset_system()
+        return jsonify({"status": "System reset successful"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/dispense', methods=['POST'])
 def dispense():
-    """Handle dispense requests."""
+    """Manually dispense a beverage."""
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
-    # Get dispense parameters
+    # Get parameters
     beverage_type = request.json.get('beverage_type', 'beer')
-    volume_ml = request.json.get('volume_ml')
-    if volume_ml:
-        volume_ml = float(volume_ml)
+    volume_ml = request.json.get('volume_ml', 300)
     
-    # Try to start dispensing
-    success = _controller.dispense_beer(volume_ml=volume_ml, beverage_type=beverage_type)
-    
-    if success:
-        return jsonify({"status": "dispensing"})
-    else:
-        return jsonify({"error": "Failed to start dispensing"}), 400
+    try:
+        # Start dispensing sequence
+        success, message = _controller.dispense_sequence.execute_full_sequence(volume_ml=volume_ml)
+        
+        if success:
+            return jsonify({"status": "Dispensing successful", "message": message})
+        else:
+            return jsonify({"error": message}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
-@app.route('/stop', methods=['POST'])
-def stop():
-    """Emergency stop for any ongoing operation."""
+@app.route('/api/save_state', methods=['POST'])
+def save_state():
+    """Save UI state for persistence."""
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
-    success = _controller.stop_operation()
+    # Get state data
+    state_data = request.json.get('ui_state', {})
     
-    if success:
-        return jsonify({"status": "stopped"})
-    else:
-        return jsonify({"error": "Failed to stop operation"}), 400
+    # Associate with session
+    session_id = session.get('session_id', 'anonymous')
+    
+    # In a real implementation, this would be saved to a database
+    # Here we just log it
+    logger.debug(f"Saving state for session {session_id}: {state_data}")
+    
+    return jsonify({"status": "State saved"})
+
+
+@app.route('/api/errors', methods=['GET'])
+def get_errors():
+    """Get error history."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    errors = _controller.error_handler.get_error_history()
+    
+    return jsonify({
+        "errors": errors
+    })
 
 
 @app.route('/maintenance', methods=['POST'])
@@ -289,7 +252,7 @@ def verify_age():
             # This is a mock for demonstration - in a real system, 
             # this would validate against a database or official API
             try:
-                # Just a basic check - in real system this would be more sophisticated
+                # Just a basic check - in real system this would be more comprehensive
                 if not id_number or not birth_date:
                     return jsonify({
                         "success": False,
@@ -341,158 +304,139 @@ def verify_age():
         })
 
 
-@app.route('/api/dispensing_status', methods=['GET'])
-def api_dispensing_status():
-    """Return the current dispensing status for frontend monitoring."""
+@app.route('/switch_language', methods=['GET', 'POST'])
+def switch_language():
+    """Switch the UI language."""
+    # Determine mode
+    if request.method == 'POST':
+        # Get language from form data
+        language = request.form.get('language', DEFAULT_LANGUAGE)
+    else:
+        # Get language from query parameter
+        language = request.args.get('language', DEFAULT_LANGUAGE)
+    
+    # Validate language
+    if language not in LANGUAGES:
+        language = DEFAULT_LANGUAGE
+    
+    # Store in session
+    session['language'] = language
+    
+    # If it's an API request, return a JSON response
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"status": "success", "language": language})
+    
+    # Otherwise, redirect back to the previous page or homepage
+    return redirect(request.referrer or url_for('index'))
+
+
+@app.route('/api/start_dispensing', methods=['POST'])
+def start_dispensing():
+    """Start the dispensing process for the cart items."""
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
-    # Get the current system state
-    system_state = _controller.get_system_state()
+    # Get order items from request
+    order_items = request.json.get('order_items', [])
     
-    # For demonstration purposes, we'll simulate a progress
-    # In a real system, this would be based on actual dispensing progress
-    import random
-    import time
-    
-    # Generate a timestamp-based seed to have consistent progress for short time periods
-    seed = int(time.time() / 3)  # Change every 3 seconds
-    random.seed(seed)
-    
-    # Get the system state
-    state = system_state['state']
-    
-    # Convert system state to a client-friendly format
-    if state == 'dispensing':
-        # Calculate a progress value that increments over time
-        progress = (int(time.time()) % 15) * 6  # 0-90% over 15 seconds
-        
-        if progress < 30:
-            message = "Dispensing cup..."
-        elif progress < 60:
-            message = "Pouring beverage..."
-        elif progress < 90:
-            message = "Finishing up..."
-        else:
-            message = "Dispensing complete."
-            progress = 100
-            state = 'complete'
-        
-        return jsonify({
-            "status": state,
-            "progress": progress,
-            "message": message
-        })
-    elif state == 'error':
-        return jsonify({
-            "status": "error",
-            "progress": 0,
-            "message": system_state.get('error_message', 'An error occurred during dispensing.')
-        })
-    else:
-        # Simulate dispensing initialization
-        return jsonify({
-            "status": "initializing",
-            "progress": 10,
-            "message": "Preparing to dispense beverage..."
-        })
-
-
-@app.route('/api/dispense', methods=['POST'])
-def api_dispense():
-    """Handle dispense requests from the JavaScript frontend."""
-    if _controller is None:
-        return jsonify({"error": "System not available"}), 503
-    
-    # Get dispense parameters from JSON
-    data = request.get_json()
-    if not data:
-        return jsonify({"success": False, "message": "No data provided"}), 400
-    
-    beverage_type = data.get('beverage_type', 'beer')
-    size_ml = data.get('size_ml')
-    
-    # Convert size to float if it's a string
-    if isinstance(size_ml, str):
-        try:
-            size_ml = float(size_ml)
-        except ValueError:
-            # If conversion fails, use default
-            size_ml = None
-    
-    # Check if this beverage requires age verification
-    from config import BEVERAGE_POUR_SETTINGS
-    beverage_settings = BEVERAGE_POUR_SETTINGS.get(beverage_type, BEVERAGE_POUR_SETTINGS['beer'])
-    requires_age_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)
-    
-    # If it's beer or requires verification, inform the frontend
-    if requires_age_verification:
-        return jsonify({
-            "success": True,
-            "requires_age_verification": True,
-            "message": "Age verification required before dispensing."
-        })
-    
-    # Try to start dispensing
-    success = _controller.dispense_beer(volume_ml=size_ml, beverage_type=beverage_type)
-    
-    if success:
-        return jsonify({
-            "success": True,
-            "requires_age_verification": False,
-            "status": "dispensing"
-        })
-    else:
+    if not order_items:
         return jsonify({
             "success": False,
-            "message": "Failed to start dispensing"
+            "message": "No items in order"
         }), 400
-
-
-@app.route('/api/get_state', methods=['GET'])
-def api_get_state():
-    """Get the current UI state from session."""
+    
     try:
-        state = session.get('ui_state', {}) 
-        return jsonify({
-            "success": True,
-            "state": state
-        })
-    except Exception as e:
-        logger.error(f"Error getting state: {str(e)}")
-        return jsonify({
-            "success": False,
-            "message": "Error retrieving state",
-            "error": str(e)
-        }), 500
-
-@app.route('/api/save_state', methods=['POST'])
-def api_save_state():
-    """Save UI state to session."""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "message": "No data provided"}), 400
+        # In a real implementation, this would trigger the actual hardware
+        # Here we'll just simulate success
+        logger.info(f"Starting dispensing for order: {order_items}")
         
-        # Save the state to session
-        session['ui_state'] = data
+        # Store order in session for status checks
+        session['current_order'] = {
+            'items': order_items,
+            'start_time': time.time(),
+            'status': 'preparing',
+            'progress': 10,
+            'current_item_index': 0
+        }
+        
         return jsonify({
             "success": True,
-            "message": "State saved successfully",
-            "currentScreen": data.get('currentScreen')
+            "message": "Dispensing started",
+            "order_id": str(int(time.time()))  # Mock order ID
         })
     except Exception as e:
-        logger.error(f"Error saving state: {str(e)}")
+        logger.error(f"Error starting dispensing: {str(e)}")
         return jsonify({
             "success": False,
-            "message": "Error saving state",
-            "error": str(e)
+            "message": str(e)
         }), 500
+
+
+@app.route('/api/dispensing_status')
+def dispensing_status():
+    """Get the current status of the dispensing process."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    # Get order from session
+    current_order = session.get('current_order', None)
+    
+    if not current_order:
+        return jsonify({
+            "status": "not_found",
+            "message": "No active dispensing process",
+            "progress": 0
+        })
+    
+    # In a real implementation, this would query the hardware
+    # Here we'll simulate progress based on time elapsed
+    elapsed_time = time.time() - current_order['start_time']
+    total_items = len(current_order['items'])
+    current_item_index = current_order['current_item_index']
+    
+    # Simulate different stages
+    if elapsed_time < 2:
+        # Still preparing
+        status = "preparing"
+        progress = min(30, int(elapsed_time * 15))
+    elif elapsed_time < 4:
+        # Dispensing cup
+        status = "dispensing_cup"
+        progress = min(50, 30 + int((elapsed_time - 2) * 10))
+    elif elapsed_time < 8:
+        # Pouring beverage
+        status = "pouring"
+        progress = min(80, 50 + int((elapsed_time - 4) * 7.5))
+        current_item_index = min(current_item_index + int((elapsed_time - 4) / 2), total_items - 1)
+    elif elapsed_time < 10:
+        # Delivering cup
+        status = "delivering"
+        progress = min(99, 80 + int((elapsed_time - 8) * 10))
+    else:
+        # Complete
+        status = "complete"
+        progress = 100
+    
+    # Update session
+    current_order['status'] = status
+    current_order['progress'] = progress
+    current_order['current_item_index'] = current_item_index
+    session['current_order'] = current_order
+    
+    # Get current item being processed
+    current_item = current_order['items'][current_item_index] if current_item_index < total_items else None
+    
+    return jsonify({
+        "status": status,
+        "progress": progress,
+        "message": f"Processing {current_item_index + 1} of {total_items}",
+        "current_item": current_item,
+        "order_items": current_order['items']
+    })
 
 @app.route('/api/verify_age', methods=['POST'])
 def api_verify_age():
     """Handle age verification requests from the JavaScript frontend."""
-    # For testing purposes, always return success with mock data
     
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
@@ -506,29 +450,6 @@ def api_verify_age():
     
     logger.debug(f"Received verification request for beverage type: {beverage_type}")
     
-    # Determine minimum age based on beverage type
-    minimum_age = 21 if beverage_type.lower() in ['beer', 'birel'] else 0
-    
-    # Create a successful mock response
-    language = session.get('language', 'en')
-    message = ""
-    if language == 'sk':
-        message = f"Overenie veku úspešné! Vyzeráte na 25 rokov, čo spĺňa minimálny vek {minimum_age} pre {beverage_type}."
-    else:
-        message = f"Age verification successful. You appear to be 25 years old, which meets the minimum age requirement of {minimum_age} for {beverage_type}."
-    
-    logger.info("Age verification mock success")
-    
-    return jsonify({
-        "success": True,
-        "verified": True,
-        "is_adult": True,
-        "message": message,
-        "estimated_age": 25
-    })
-    
-    # The original code is commented out below to be easily restored
-    '''
     from age_verification.age_detector import verify_age_for_beverage, detect_age_from_image
     import base64
     
@@ -566,5 +487,4 @@ def api_verify_age():
             "success": False,
             "is_adult": False,
             "message": "Error during age verification: " + str(e)
-        }), 500
-    '''
+        })
