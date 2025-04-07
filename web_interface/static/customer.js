@@ -709,10 +709,4 @@ document.addEventListener('DOMContentLoaded', function() {
             saveStateToServer();
         });
     }
-    const languageSwitchBtn = document.getElementById('language-switch-btn');
-    if (languageSwitchBtn) {
-        languageSwitchBtn.addEventListener('click', function() {
-            saveStateToServer();
-        });
-    }
 });
