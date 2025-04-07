@@ -13,14 +13,20 @@ logger = logging.getLogger(__name__)
 
 # Initialize the OpenAI client
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+logger.info(f"OpenAI API key is {'present' if OPENAI_API_KEY else 'missing'}")
 
 # Check if API key is available and valid
 try:
-    if not OPENAI_API_KEY or len(OPENAI_API_KEY) < 10:
-        logger.warning("OpenAI API key is missing or invalid. Age verification will use fallback method.")
+    if not OPENAI_API_KEY:
+        logger.warning("OpenAI API key is completely missing. Age verification will use fallback method.")
+        openai_client = None
+    elif len(OPENAI_API_KEY) < 10:
+        logger.warning(f"OpenAI API key appears to be invalid (length: {len(OPENAI_API_KEY)}). Age verification will use fallback method.")
         openai_client = None
     else:
+        logger.info("Initializing OpenAI client with API key")
         openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        logger.info("OpenAI client initialized successfully")
 except Exception as e:
     logger.error(f"Error initializing OpenAI client: {str(e)}")
     openai_client = None
@@ -119,46 +125,77 @@ def detect_age_from_image(image_data, image_is_path=False, beverage_type=None):
                 "message": "Failed to process the image. Please try again."
             }
 
+        # Check if the base64 image is valid
+        if not base64_image or len(base64_image) < 100:
+            logger.error(f"Invalid base64 image data (length: {len(base64_image) if base64_image else 0})")
+            raise ValueError("Invalid base64 image data")
+            
+        # Log the first and last characters of the base64 string for debugging
+        if len(base64_image) > 20:
+            logger.info(f"Base64 image preview: {base64_image[:10]}...{base64_image[-10:]}")
+            
+        # Log that we're making an API call
+        logger.info("Making OpenAI API call for age verification")
+        
+        # Construct the messages array
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an age verification expert. Analyze the image and provide an estimated age, confidence score, and whether the person is at least 18 and 21 years old. Respond with JSON in this format: {'estimated_age': number, 'confidence': number between 0 and 1, 'is_over_18': boolean, 'is_over_21': boolean, 'reasoning': 'brief explanation'}"
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Analyze this image and determine the approximate age of the person. Provide the results as JSON as specified."
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                    }
+                ]
+            }
+        ]
+        
+        # Log that we're making the API call
+        logger.info(f"Calling OpenAI API with model: gpt-4o")
+        
         # Create the OpenAI API request with JSON response format
         response = openai_client.chat.completions.create(
             model="gpt-4o",  # the newest OpenAI model is "gpt-4o" which was released May 13, 2024
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an age verification expert. Analyze the image and provide an estimated age, confidence score, and whether the person is at least 18 and 21 years old. Respond with JSON in this format: {'estimated_age': number, 'confidence': number between 0 and 1, 'is_over_18': boolean, 'is_over_21': boolean, 'reasoning': 'brief explanation'}"
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Analyze this image and determine the approximate age of the person. Provide the results as JSON as specified."
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
-                        }
-                    ]
-                }
-            ],
+            messages=messages,
             response_format={"type": "json_object"}
         )
+        
+        # Log the response status
+        logger.info(f"OpenAI API call completed with status: {response.object}")
 
         # Parse the result
         content = response.choices[0].message.content
+        logger.info(f"OpenAI response content: {content}")
+        
         if content is None:
+            logger.error("OpenAI returned empty content")
             result = {}
         else:
-            result = json.loads(content)
+            try:
+                result = json.loads(content)
+                logger.info(f"Parsed JSON result: {result}")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON from OpenAI response: {e}. Content: {content}")
+                result = {}
         
         # Create the response with standardized fields
-        return {
+        detection_result = {
             "estimated_age": result.get("estimated_age", 0),
             "confidence": result.get("confidence", 0.0),
             "is_adult": result.get("is_over_18", False),
             "is_over_21": result.get("is_over_21", False),
             "message": result.get("reasoning", "Age analysis complete.")
         }
+        logger.info(f"Final detection result: {detection_result}")
+        return detection_result
         
     except Exception as e:
         logger.error(f"Error during age detection: {str(e)}")

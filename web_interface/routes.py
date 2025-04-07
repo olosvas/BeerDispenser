@@ -354,11 +354,27 @@ def api_verify_age_webcam():
             try:
                 try:
                     # Remove data URL prefix if present
-                    if 'base64,' in image_data:
+                    logger.info(f"Image data length: {len(image_data) if image_data else 0}")
+                    if image_data and 'base64,' in image_data:
+                        logger.info("Found base64 data URL prefix, removing it")
                         image_data = image_data.split('base64,')[1]
                     
+                    # Check if the image data is valid base64
+                    if not image_data or len(image_data.strip()) == 0:
+                        logger.error("Empty image data")
+                        raise ValueError("Empty image data")
+                        
+                    # Log the first and last few characters for debugging
+                    if len(image_data) > 20:
+                        logger.info(f"Image data preview: {image_data[:10]}...{image_data[-10:]}")
+                    
                     # Decode the base64 string
-                    image_bytes = base64.b64decode(image_data)
+                    try:
+                        image_bytes = base64.b64decode(image_data)
+                        logger.info(f"Successfully decoded base64 image, size: {len(image_bytes)} bytes")
+                    except Exception as e:
+                        logger.error(f"Base64 decoding error: {str(e)}")
+                        raise
                 except Exception as e:
                     logger.error(f"Error decoding base64 image: {str(e)}")
                     # If there's an error with the image, use the fallback detection directly
