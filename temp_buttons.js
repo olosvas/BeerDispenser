@@ -1,24 +1,24 @@
-    // Continue Type Button - Move to size selection
-    if (continueTypeBtn) {
-        continueTypeBtn.addEventListener('click', function() {
-            beverageTypeSelection.classList.add('d-none');
-            beverageSizeSelection.classList.remove('d-none');
-        });
-    }
-    
-    // Back to Type Selection
-    if (backToTypeBtn) {
-        backToTypeBtn.addEventListener('click', function() {
-            beverageSizeSelection.classList.add('d-none');
-            beverageTypeSelection.classList.remove('d-none');
-        });
-    }
-    
     // Continue Size Button - Start dispensing or trigger age verification
-    if (continueSizeBtn) {
-        continueSizeBtn.addEventListener('click', function() {
-            progressContainer.classList.remove('d-none');
-            beverageSizeSelection.classList.add('d-none');
-            
-            // Update order summary for age verification
-            orderSummary.textContent = `${selectedBeverageType.charAt(0).toUpperCase() + selectedBeverageType.slice(1)} (${selectedSize}ml)`;
+    continueSizeBtn.addEventListener('click', function() {
+        fetch('/api/dispense', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                beverage_type: selectedBeverageType,
+                size: selectedSize
+            })
+        })
+        .then(response => {
+            if (response.status === 403) {
+                // Age verification is required
+                beverageSizeSelection.classList.add('d-none');
+                ageVerification.classList.remove('d-none');
+                stepSelection.classList.remove('active');
+                stepSelection.classList.add('completed');
+                stepVerification.classList.add('active');
+                return Promise.reject('age_verification_required');
+            }
+            return response.json();
+        })

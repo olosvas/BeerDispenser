@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     // State
     let selectedBeverageType = null;
+    let selectedSize = null;
+    // State Management functions
+    let cartItems = [];
     // State Management functions
     let cartItems = [];
     
@@ -97,6 +100,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Hide all screens
+    
+    // Hide all screens
     function hideAllScreens() {
         beverageTypeSelection.classList.add('d-none');
         beverageSizeSelection.classList.add('d-none');
@@ -108,26 +113,8 @@ document.addEventListener('DOMContentLoaded', function() {
         dispensing.classList.add('d-none');
         ready.classList.add('d-none');
     }
-        } else if (screenName === 'complete') {
-            ready.classList.remove('d-none');
-            progressContainer.classList.remove('d-none');
-            stepSelection.classList.add('completed');
-            stepVerification.classList.add('completed');
-            stepDispensing.classList.add('completed');
-            stepPickup.classList.add('active');
-        }
-    }
     
-    // Hide all screens
-    function hideAllScreens() {
-        beverageTypeSelection.classList.add('d-none');
-        beverageSizeSelection.classList.add('d-none');
-        shoppingCart && shoppingCart.classList.add('d-none');
-        paymentScreen && paymentScreen.classList.add('d-none');
-        ageVerification.classList.add('d-none');
-        dispensing.classList.add('d-none');
-        ready.classList.add('d-none');
-    }
+    // Elements - Selection
     
     // Elements - Selection
     const beverageTypeOptions = document.querySelectorAll('.beverage-type-option');
@@ -217,9 +204,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     // Continue Size Button - Start dispensing or trigger age verification
+    // Continue Size Button - Start dispensing or trigger age verification
     continueSizeBtn.addEventListener('click', function() {
+        fetch('/api/dispense', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                beverage_type: selectedBeverageType,
+                size: selectedSize
+            })
+        })
+        .then(response => {
             if (response.status === 403) {
                 // Age verification is required
+                beverageSizeSelection.classList.add('d-none');
+                ageVerification.classList.remove('d-none');
+                stepSelection.classList.remove('active');
+                stepSelection.classList.add('completed');
+                stepVerification.classList.add('active');
+                return Promise.reject('age_verification_required');
+            }
+            return response.json();
+        })
                 beverageSizeSelection.classList.add('d-none');
                 ageVerification.classList.remove('d-none');
                 stepSelection.classList.remove('active');
