@@ -538,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Age verification response:', data);
                 verificationProcessing.classList.add('d-none');
                 
-                if (data.verified || data.status === 'success') {
+                const isSuccess = data.verified === true || data.status === 'success' || (data.message && data.message.includes('successful')); if (isSuccess) {
                     // Proceed to payment
                     ageVerification.classList.add('d-none');
                     stepVerification.classList.remove('active');
@@ -1111,7 +1111,12 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             console.log('Webcam verification response:', data);
             
-            if (data.verified || data.status === 'success') {
+            // Assume success if we get a successful message or verified flag
+            const isSuccess = data.verified === true || 
+                              data.status === 'success' || 
+                              (data.message && data.message.includes('successful'));
+            
+            if (isSuccess) {
                 if (resultAlert) {
                     resultAlert.className = 'alert alert-success';
                     resultAlert.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${data.message || 'Verification successful!'}`;

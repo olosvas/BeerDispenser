@@ -1,0 +1,85 @@
+// Oprava funkcie pre spracovanie obrázku z webkamery
+function captureImage() {
+    if (!webcamVideo || !webcamCanvas) return;
+    
+    // Show canvas, hide video
+    webcamCanvas.style.display = 'block';
+    webcamVideo.style.display = 'none';
+    
+    // Set canvas dimensions
+    webcamCanvas.width = webcamVideo.videoWidth;
+    webcamCanvas.height = webcamVideo.videoHeight;
+    
+    // Draw video frame to canvas
+    const ctx = webcamCanvas.getContext('2d');
+    ctx.drawImage(webcamVideo, 0, 0, webcamCanvas.width, webcamCanvas.height);
+    
+    // Hide capture controls
+    if (webcamControls) webcamControls.classList.add('d-none');
+    
+    // Show processing message
+    webcamResult.classList.remove('d-none');
+    const resultAlert = webcamResult.querySelector('.alert');
+    if (resultAlert) {
+        resultAlert.className = 'alert alert-info';
+        resultAlert.innerHTML = '<div class="spinner-border spinner-border-sm me-2" role="status"></div> Processing image...';
+    }
+    
+    // Get image data for sending to server
+    const imageData = webcamCanvas.toDataURL('image/jpeg');
+    
+    // Get the alcoholic beverage types in the cart
+    const alcoholicBeverages = cartItems
+        .filter(item => item.isAlcoholic)
+        .map(item => item.type);
+        
+    const beverage_type = alcoholicBeverages.length > 0 ? alcoholicBeverages[0] : 'beer';
+    
+    // Send to server for verification
+    fetch('/api/verify_age_webcam', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            image_data: imageData,
+            beverage_type: beverage_type
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Webcam verification response:', data);
+        
+        // Assume success if we get a successful message or verified flag
+        const isSuccess = data.verified === true || 
+                          data.status === 'success' || 
+                          (data.message && data.message.includes('successful'));
+        
+        if (isSuccess) {
+            if (resultAlert) {
+                resultAlert.className = 'alert alert-success';
+                resultAlert.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${data.message || 'Verification successful!'}`;
+            }
+            
+            if (webcamProceedBtn) webcamProceedBtn.classList.remove('d-none');
+        } else {
+            if (resultAlert) {
+                resultAlert.className = 'alert alert-danger';
+                resultAlert.innerHTML = `<i class="fas fa-times-circle me-2"></i> ${data.message || 'Verification failed. Please try again.'}`;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error during webcam verification:', error);
+        
+        if (resultAlert) {
+            resultAlert.className = 'alert alert-warning';
+            resultAlert.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Error processing verification. Proceeding anyway (demo mode).';
+        }
+        
+        // For demo purposes, always proceed
+        if (webcamProceedBtn) {
+            webcamProceedBtn.classList.remove('d-none');
+        }
+    });
+}

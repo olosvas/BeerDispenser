@@ -450,9 +450,16 @@ def api_verify_age_webcam():
                     session['age_verified'] = True
                     session['verified_beverage_type'] = beverage_type
                     
+                    # Construct a message with the age if available
+                    message = verification_result.get('message', 'Age verification successful')
+                    if 'estimated_age' in verification_result:
+                        age = verification_result['estimated_age']
+                        minimum_age = 21 if beverage_type == 'beer' else 18
+                        message = f"Age verification successful. You appear to be {age} years old, which meets the minimum age requirement of {minimum_age} for {beverage_type}."
+                    
                     return jsonify({
                         'status': 'success',
-                        'message': verification_result.get('message', 'Age verification successful'),
+                        'message': message,
                         'verified': True,
                         'age': verification_result.get('estimated_age', 21),
                         'confidence': verification_result.get('confidence', 0.8),
