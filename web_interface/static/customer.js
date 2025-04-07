@@ -652,8 +652,6 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {string} screenName - The ID of the screen to show
      */
     function showScreen(screenName) {
-    function showScreen(screenName) {
-        // Hide all screens first
         hideAllScreens();
         
         // Show the requested screen
@@ -705,7 +703,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Save the current state
-        saveState();
         saveState();
     }
     
