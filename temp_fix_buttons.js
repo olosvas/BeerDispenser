@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const sizeSelectionScreen = document.getElementById('beverage-size-selection');
     const cartScreen = document.getElementById('shopping-cart');
     const paymentScreen = document.getElementById('payment-screen');
-    const verificationScreen = document.getElementById('age-verification');
+    const verificationScreen = document.getElementById('age-verification-screen');
     const dispensingScreen = document.getElementById('dispensing-screen');
     const orderCompleteScreen = document.getElementById('order-complete-screen');
     
@@ -31,8 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Cart elements
     const cartItemsContainer = document.getElementById('cart-items-container');
-    const cartTotal = document.getElementById('cart-total-price');
-    const cartTotalItems = document.getElementById('cart-total-items');
+    const cartTotal = document.getElementById('cart-total');
     const emptyCartMessage = document.getElementById('empty-cart-message');
     const cartCount = document.getElementById('cart-count');
     const cartIconContainer = document.getElementById('cart-icon-container');
@@ -44,7 +43,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewCartBtn = document.getElementById('view-cart-btn');
     const viewCartFromSizeBtn = document.getElementById('view-cart-from-size-btn');
     const checkoutBtn = document.getElementById('checkout-btn');
-    const continueShopping = document.getElementById('continue-shopping-btn');
     const backToCartBtn = document.getElementById('back-to-cart-btn');
     
     // Beverage type and size display elements
@@ -131,11 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         if (checkoutBtn) checkoutBtn.addEventListener('click', () => {
-            showScreen('age-verification');
-        });
-        
-        if (continueShopping) continueShopping.addEventListener('click', () => {
-            showScreen('beverage-type-selection');
+            showScreen('age-verification-screen');
         });
         
         if (backToCartBtn && backToCartBtn.addEventListener) {
@@ -293,12 +287,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Add items
                 let totalPrice = 0;
-                let totalQuantity = 0;
                 
                 cartItems.forEach((item, index) => {
                     const itemPrice = item.price;
                     totalPrice += itemPrice;
-                    totalQuantity += item.quantity;
                     
                     const itemElement = document.createElement('div');
                     itemElement.className = 'cart-item d-flex justify-content-between align-items-center py-2';
@@ -337,10 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update total
                 if (cartTotal) {
                     cartTotal.textContent = `€${totalPrice.toFixed(2)}`;
-                }
-                
-                if (cartTotalItems) {
-                    cartTotalItems.textContent = totalQuantity;
                 }
             }
         }
@@ -444,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!bevTypeSelectionScreen.classList.contains('d-none')) return 'beverage-type-selection';
         if (!sizeSelectionScreen.classList.contains('d-none')) return 'beverage-size-selection';
         if (!cartScreen.classList.contains('d-none')) return 'shopping-cart';
-        if (verificationScreen && !verificationScreen.classList.contains('d-none')) return 'age-verification';
+        if (verificationScreen && !verificationScreen.classList.contains('d-none')) return 'age-verification-screen';
         if (paymentScreen && !paymentScreen.classList.contains('d-none')) return 'payment-screen';
         if (dispensingScreen && !dispensingScreen.classList.contains('d-none')) return 'dispensing-screen';
         if (orderCompleteScreen && !orderCompleteScreen.classList.contains('d-none')) return 'order-complete-screen';
@@ -458,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'beverage-type-selection': {step: stepSelection, previous: []},
             'beverage-size-selection': {step: stepSelection, previous: [stepSelection]},
             'shopping-cart': {step: stepCart, previous: [stepSelection]},
-            'age-verification': {step: stepVerification, previous: [stepSelection, stepCart]},
+            'age-verification-screen': {step: stepVerification, previous: [stepSelection, stepCart]},
             'payment-screen': {step: stepPayment, previous: [stepSelection, stepCart, stepVerification]},
             'dispensing-screen': {step: stepDispensing, previous: [stepSelection, stepCart, stepVerification, stepPayment]},
             'order-complete-screen': {step: stepPickup, previous: [stepSelection, stepCart, stepVerification, stepPayment, stepDispensing]}
@@ -493,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateCartDisplay();
                 cartScreen.classList.remove('d-none');
                 break;
-            case 'age-verification':
+            case 'age-verification-screen':
                 if (verificationScreen) verificationScreen.classList.remove('d-none');
                 break;
             case 'payment-screen':
