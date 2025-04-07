@@ -3,6 +3,12 @@
 // Pass language and progress state to JavaScript
 const language = "{{ language }}";
 const keepProgress = {{ keep_progress|default(false)|lower }};
+
+// Pass saved state from session to JavaScript
+const savedCartItems = {{ cart_items|default([])|tojson }};
+const savedBeverageType = {{ selected_beverage|default('')|tojson }};
+const savedSize = {{ selected_size|default('')|tojson }};
+const savedScreen = {{ current_screen|default('')|tojson }};
 </script>
 <script src="{{ url_for('static', filename='customer.js') }}"></script>
 {% endblock %}

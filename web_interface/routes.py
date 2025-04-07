@@ -33,7 +33,7 @@ def index():
     return redirect(url_for('customer', keepProgress='true' if keep_progress else 'false'))
 
 
-@app.route('/customer')
+@app.route('/customer', methods=['GET', 'POST'])
 def customer():
     """Render the customer ordering interface."""
     if _controller is None:
@@ -51,7 +51,7 @@ def customer():
     # Always update session with current language
     session['language'] = language
     
-    # Check if we need to keep progress visible
+    # Check if we need to keep progress visible and cart state
     # First check query param, then fall back to session value
     keep_progress_param = request.args.get('keepProgress') 
     if keep_progress_param is not None:
@@ -62,7 +62,26 @@ def customer():
     # Save to session for persistence across requests
     session['keep_progress'] = keep_progress
     
-    # Log language for debugging
+    # Check for cart state parameters (coming from AJAX call)
+    if request.method == 'POST' and request.is_json:
+        data = request.get_json()
+        if 'cart_items' in data:
+            session['cart_items'] = data.get('cart_items', [])
+        if 'selected_beverage' in data:
+            session['selected_beverage'] = data.get('selected_beverage')
+        if 'selected_size' in data:
+            session['selected_size'] = data.get('selected_size')
+        if 'current_screen' in data:
+            session['current_screen'] = data.get('current_screen')
+        return jsonify({'success': True})
+    
+    # Pass cart and UI state to template
+    cart_items = session.get('cart_items', [])
+    selected_beverage = session.get('selected_beverage')
+    selected_size = session.get('selected_size')
+    current_screen = session.get('current_screen')
+    
+    # Log language and state for debugging
     logger.debug(f"Using language: {language}, keep_progress: {keep_progress}, session: {session}")
         
     system_state = _controller.get_system_state()
@@ -73,9 +92,20 @@ def customer():
                               error=error_message,
                               state=system_state,
                               language=language,
-                              keep_progress=keep_progress)
+                              keep_progress=keep_progress,
+                              cart_items=cart_items,
+                              selected_beverage=selected_beverage,
+                              selected_size=selected_size,
+                              current_screen=current_screen)
     
-    return render_template('customer.html', state=system_state, language=language, keep_progress=keep_progress)
+    return render_template('customer.html', 
+                          state=system_state, 
+                          language=language, 
+                          keep_progress=keep_progress,
+                          cart_items=cart_items,
+                          selected_beverage=selected_beverage,
+                          selected_size=selected_size,
+                          current_screen=current_screen)
 
 
 @app.route('/switch_language')
