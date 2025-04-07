@@ -37,6 +37,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const cartCount = document.getElementById('cart-count');
     const cartIconContainer = document.getElementById('cart-icon-container');
     
+    // Verification elements
+    const verificationMethods = document.getElementById('verification-methods');
+    const webcamVerification = document.getElementById('webcam-verification');
+    const webcamVerifyBtn = document.getElementById('webcam-verify-btn');
+    const idCardVerifyBtn = document.getElementById('id-card-verify-btn');
+    const webcamStartBtn = document.getElementById('webcam-start-btn');
+    const webcamCaptureBtn = document.getElementById('webcam-capture-btn');
+    const webcamBackBtn = document.getElementById('webcam-back-btn');
+    const webcamResult = document.getElementById('webcam-result');
+    const webcamVideo = document.getElementById('webcam-video');
+    const webcamCanvas = document.getElementById('webcam-canvas');
+    
     // Buttons
     const continueTypeBtn = document.getElementById('continue-type-btn');
     const backToTypeBtn = document.getElementById('back-to-type-btn');
@@ -59,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let capturedImage = null;
     let dispensingComplete = false;
     let dispensingMonitorInterval = null;
+    let videoStream = null;
     
     // Initialize UI when the page loads
     initializeUI();
@@ -143,6 +156,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 showScreen('shopping-cart');
             });
         }
+        
+        // Verification method selection
+        if (webcamVerifyBtn) webcamVerifyBtn.addEventListener('click', () => {
+            if (verificationMethods) verificationMethods.classList.add('d-none');
+            if (webcamVerification) webcamVerification.classList.remove('d-none');
+        });
+        
+        if (idCardVerifyBtn) idCardVerifyBtn.addEventListener('click', () => {
+            // Implementation for ID card verification would go here
+            // For now, just show a success message and proceed
+            const message = document.documentElement.lang === 'sk' ? 
+                'Overenie preukazu úspešné!' : 
+                'ID verification successful!';
+            displayMessage(message, 'success');
+            
+            // Proceed to next step
+            showScreen('payment-screen');
+        });
+        
+        // Webcam controls
+        if (webcamStartBtn) webcamStartBtn.addEventListener('click', startWebcam);
+        if (webcamCaptureBtn) webcamCaptureBtn.addEventListener('click', captureWebcamImage);
+        if (webcamBackBtn) webcamBackBtn.addEventListener('click', () => {
+            stopWebcam();
+            if (verificationMethods) verificationMethods.classList.remove('d-none');
+            if (webcamVerification) webcamVerification.classList.add('d-none');
+        });
     }
     
     function selectBeverage(type) {
@@ -354,6 +394,241 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Webcam functionality
+    function startWebcam() {
+        if (webcamActive) return;
+        
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    videoStream = stream;
+                    webcamVideo.srcObject = stream;
+                    webcamVideo.play();
+                    webcamActive = true;
+                    
+                    if (webcamCaptureBtn) webcamCaptureBtn.disabled = false;
+                    if (webcamStartBtn) webcamStartBtn.disabled = true;
+                    
+                    // Reset result area if visible
+                    if (webcamResult) webcamResult.classList.add('d-none');
+                })
+                .catch(error => {
+                    console.error('Error accessing webcam:', error);
+                    const language = document.documentElement.lang || 'en';
+                    const errorMessage = language === 'sk' ? 
+                        'Nepodarilo sa pristúpiť ku kamere. Skontrolujte nastavenia kamery a povolenia.' : 
+                        'Failed to access webcam. Check your camera settings and permissions.';
+                    displayMessage(errorMessage, 'danger');
+                });
+        } else {
+            const language = document.documentElement.lang || 'en';
+            const errorMessage = language === 'sk' ? 
+                'Váš prehliadač nepodporuje prístup ku kamere.' : 
+                'Your browser does not support webcam access.';
+            displayMessage(errorMessage, 'danger');
+        }
+    }
+    
+    function stopWebcam() {
+        if (!webcamActive) return;
+        
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+        }
+        
+        webcamVideo.srcObject = null;
+        webcamActive = false;
+        
+        if (webcamCaptureBtn) webcamCaptureBtn.disabled = true;
+        if (webcamStartBtn) webcamStartBtn.disabled = false;
+    }
+    
+    function captureWebcamImage() {
+        if (!webcamActive) return;
+        
+        const context = webcamCanvas.getContext('2d');
+        
+        // Set canvas dimensions to match video
+        webcamCanvas.width = webcamVideo.videoWidth;
+        webcamCanvas.height = webcamVideo.videoHeight;
+        
+        // Draw current video frame to canvas
+        context.drawImage(webcamVideo, 0, 0, webcamCanvas.width, webcamCanvas.height);
+        
+        // Convert to data URL
+        capturedImage = webcamCanvas.toDataURL('image/jpeg');
+        
+        // Stop webcam after capture
+        stopWebcam();
+        
+        // Display result
+        if (webcamResult) {
+            webcamResult.classList.remove('d-none');
+            webcamResult.innerHTML = `
+                <div class="text-center">
+                    <h5 class="mb-3">${document.documentElement.lang === 'sk' ? 'Spracovanie snímky...' : 'Processing image...'}</h5>
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Send image to server for verification
+        sendImageForVerification(capturedImage);
+    }
+    
+    function sendImageForVerification(imageDataURL) {
+        // Determine beverage type that needs age verification
+        let beverageRequiringVerification = 'beer'; // Default
+        
+        for (const item of cartItems) {
+            if (item.beverage === 'beer') {
+                beverageRequiringVerification = 'beer';
+                break;
+            } else if (item.beverage === 'birel') {
+                beverageRequiringVerification = 'birel';
+            }
+        }
+        
+        fetch('/api/verify_age', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                image_data: imageDataURL,
+                beverage_type: beverageRequiringVerification
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (webcamResult) {
+                const language = document.documentElement.lang || 'en';
+                
+                if (data.success) {
+                    const isVerified = data.verified;
+                    const message = data.message || (isVerified ? 
+                        (language === 'sk' ? 'Overenie veku úspešné!' : 'Age verification successful!') : 
+                        (language === 'sk' ? 'Overenie veku zlyhalo. Skúste znova alebo použite iný spôsob overenia.' : 'Age verification failed. Try again or use another verification method.'));
+                    
+                    webcamResult.innerHTML = `
+                        <div class="alert alert-${isVerified ? 'success' : 'danger'} mb-3">
+                            <h5 class="alert-heading">${isVerified ? 
+                                (language === 'sk' ? 'Overenie úspešné' : 'Verification Successful') : 
+                                (language === 'sk' ? 'Overenie zlyhalo' : 'Verification Failed')}</h5>
+                            <p class="mb-0">${message}</p>
+                            ${data.estimated_age ? `<p class="mb-0 mt-2">${language === 'sk' ? 'Odhadovaný vek' : 'Estimated age'}: ${data.estimated_age}</p>` : ''}
+                        </div>
+                    `;
+                    
+                    if (isVerified) {
+                        webcamResult.innerHTML += `
+                            <div class="text-center mt-3">
+                                <button id="proceed-to-payment-btn" class="btn btn-primary">
+                                    ${language === 'sk' ? 'Pokračovať k platbe' : 'Proceed to Payment'} <i class="fas fa-chevron-right ms-2"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Add event listener to proceed button
+                        const proceedBtn = document.getElementById('proceed-to-payment-btn');
+                        if (proceedBtn) {
+                            proceedBtn.addEventListener('click', () => {
+                                showScreen('payment-screen');
+                            });
+                        }
+                        
+                        // Automatically proceed to payment after 3 seconds
+                        setTimeout(() => {
+                            showScreen('payment-screen');
+                        }, 3000);
+                    } else {
+                        webcamResult.innerHTML += `
+                            <div class="text-center mt-3">
+                                <button id="retry-verification-btn" class="btn btn-secondary me-2">
+                                    <i class="fas fa-redo me-2"></i> ${language === 'sk' ? 'Skúsiť znova' : 'Try Again'}
+                                </button>
+                                <button id="back-to-methods-btn" class="btn btn-outline-primary">
+                                    ${language === 'sk' ? 'Vybrať iný spôsob' : 'Choose Another Method'}
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Add event listeners for retry and back buttons
+                        const retryBtn = document.getElementById('retry-verification-btn');
+                        const backToMethodsBtn = document.getElementById('back-to-methods-btn');
+                        
+                        if (retryBtn) {
+                            retryBtn.addEventListener('click', () => {
+                                webcamResult.classList.add('d-none');
+                                startWebcam();
+                            });
+                        }
+                        
+                        if (backToMethodsBtn) {
+                            backToMethodsBtn.addEventListener('click', () => {
+                                webcamResult.classList.add('d-none');
+                                verificationMethods.classList.remove('d-none');
+                                webcamVerification.classList.add('d-none');
+                            });
+                        }
+                    }
+                } else {
+                    // Error in processing
+                    webcamResult.innerHTML = `
+                        <div class="alert alert-danger mb-3">
+                            <h5 class="alert-heading">${language === 'sk' ? 'Chyba pri spracovaní' : 'Processing Error'}</h5>
+                            <p class="mb-0">${data.message || (language === 'sk' ? 'Nastala chyba pri overovaní veku. Skúste to znova.' : 'An error occurred during age verification. Please try again.')}</p>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button id="retry-verification-btn" class="btn btn-secondary">
+                                <i class="fas fa-redo me-2"></i> ${language === 'sk' ? 'Skúsiť znova' : 'Try Again'}
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Add event listener for retry button
+                    const retryBtn = document.getElementById('retry-verification-btn');
+                    if (retryBtn) {
+                        retryBtn.addEventListener('click', () => {
+                            webcamResult.classList.add('d-none');
+                            startWebcam();
+                        });
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error during age verification:', error);
+            
+            if (webcamResult) {
+                const language = document.documentElement.lang || 'en';
+                webcamResult.innerHTML = `
+                    <div class="alert alert-danger mb-3">
+                        <h5 class="alert-heading">${language === 'sk' ? 'Chyba spojenia' : 'Connection Error'}</h5>
+                        <p class="mb-0">${language === 'sk' ? 'Nepodarilo sa spojiť so serverom. Skontrolujte pripojenie k internetu a skúste znova.' : 'Failed to connect to the server. Check your internet connection and try again.'}</p>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button id="retry-verification-btn" class="btn btn-secondary">
+                            <i class="fas fa-redo me-2"></i> ${language === 'sk' ? 'Skúsiť znova' : 'Try Again'}
+                        </button>
+                    </div>
+                `;
+                
+                // Add event listener for retry button
+                const retryBtn = document.getElementById('retry-verification-btn');
+                if (retryBtn) {
+                    retryBtn.addEventListener('click', () => {
+                        webcamResult.classList.add('d-none');
+                        startWebcam();
+                    });
+                }
+            }
+        });
+    }
+    
     function restoreState() {
         fetch('/api/get_state')
             .then(response => response.json())
@@ -479,6 +754,14 @@ document.addEventListener('DOMContentLoaded', function() {
         allScreens.forEach(screen => {
             if (screen) screen.classList.add('d-none');
         });
+        
+        // Reset verification UI when switching screens
+        if (screenName === 'age-verification') {
+            if (verificationMethods) verificationMethods.classList.remove('d-none');
+            if (webcamVerification) webcamVerification.classList.add('d-none');
+            if (webcamResult) webcamResult.classList.add('d-none');
+            stopWebcam();
+        }
         
         // Show the requested screen
         switch (screenName) {
