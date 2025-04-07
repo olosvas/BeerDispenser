@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const orderSummary = document.getElementById("order-summary");
     const verifyAgeBtn = document.getElementById("verify-age-btn");
     const verificationForm = document.getElementById("verification-form");
+    const webcamVerification = document.getElementById("webcam-verification");
+    const webcamVerification = document.getElementById("webcam-verification");
     const webcamCanvas = document.getElementById("webcam-canvas");
     const webcamPlaceholder = document.getElementById("webcam-placeholder");
     const webcamStartBtn = document.getElementById("webcam-start-btn");
@@ -90,38 +92,6 @@ document.addEventListener('DOMContentLoaded', function() {
             continueSizeBtn.disabled = false;
         });
     });
-            if (response.status === 403) {
-                // Age verification is required
-                beverageSizeSelection.classList.add("d-none");
-                ageVerification.classList.remove("d-none");
-                
-                // Show verification methods, hide verification form
-                verificationMethods.classList.remove("d-none");
-                verificationForm.classList.add("d-none");
-                webcamVerification.classList.add("d-none");
-                
-                stepSelection.classList.remove("active");
-                stepSelection.classList.add("completed");
-                stepVerification.classList.add("active");
-                return Promise.reject("age_verification_required");
-            }
-    });
-    
-    // Back to Type Selection
-    backToTypeBtn.addEventListener('click', function() {
-        beverageSizeSelection.classList.add('d-none');
-        beverageTypeSelection.classList.remove('d-none');
-    });
-    
-    // Continue from Size Selection - check if age verification is needed
-    continueSizeBtn.addEventListener('click', function() {
-        // Update order summary
-        const beverageTypeName = beverageTypeDisplay.textContent;
-        orderSummary.textContent = `${beverageTypeName} (${selectedSize}ml)`;
-        
-        // First check if age verification is required for this beverage type
-        fetch('/api/dispense', {
-            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -210,6 +180,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.getElementById("error-back-btn").addEventListener("click", function() {
+        verificationError.classList.add("d-none");
+        verificationMethods.classList.remove("d-none");
+    });
+
     // Webcam control buttons
     webcamStartBtn.addEventListener("click", function() {
         startWebcam();
@@ -227,9 +201,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // We have a successful age verification, proceed to dispensing
         stopWebcam();
         startDispensing();
-    });
-        verificationError.classList.add("d-none");
-        verificationMethods.classList.remove("d-none");
     });
     // Verify Age and Start Order
     verifyAgeBtn.addEventListener('click', function(e) {
