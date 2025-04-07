@@ -700,23 +700,10 @@ continueSizeBtn.onclick = function(event) {
         webcamProceedBtn.classList.add('d-none');
     }
     
-                dispensingStatus.className = 'alert alert-danger';
-                resetBtn.classList.remove('d-none');
-            }
-        })
-        .catch(error => {
-            // Show error message
-            console.error('Error during dispensing:', error);
-            dispensingMessage.textContent = 'Error: Unable to communicate with the dispenser.';
-            dispensingStatus.className = 'alert alert-danger';
-            resetBtn.classList.remove('d-none');
-        });
-    }
-    
     function startDispensing() {
         // Update UI for dispensing
         ageVerification.classList.add('d-none');
-        dispensing.classList.remove('d-none');
+        dispensingInfo.classList.remove('d-none');
         
         stepVerification.classList.remove('active');
         stepVerification.classList.add('completed');
@@ -753,3 +740,68 @@ continueSizeBtn.onclick = function(event) {
             } else {
                 // Show error message
                 dispensingMessage.textContent = 'Error: ' + data.message;
+                dispensingStatus.className = 'alert alert-danger';
+                resetBtn.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            // Show error message
+            console.error('Error during dispensing:', error);
+            dispensingMessage.textContent = 'Error: Unable to communicate with the dispenser.';
+            dispensingStatus.className = 'alert alert-danger';
+            resetBtn.classList.remove('d-none');
+        });
+    }
+    
+    function startDispensing() {
+        // Update UI for dispensing
+        ageVerification.classList.add('d-none');
+        dispensingInfo.classList.remove('d-none');
+        
+        stepVerification.classList.remove('active');
+        stepVerification.classList.add('completed');
+        stepDispensing.classList.add('active');
+        
+        // Start the dispensing sequence
+        let data = {
+            beverage_type: selectedBeverageType,
+            volume_ml: selectedBeverageSize
+        };
+        
+        fetch('/api/dispense', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                dispensingMessage.textContent = 'Beverage dispensed successfully!';
+                dispensingStatus.className = 'alert alert-success';
+                
+                setTimeout(() => {
+                    // If successful, allow starting a new order
+                    resetBtn.classList.remove('d-none');
+                    
+                    stepDispensing.classList.remove('active');
+                    stepDispensing.classList.add('completed');
+                    stepCompletion.classList.add('active');
+                }, 2000);
+            } else {
+                // Show error message
+                dispensingMessage.textContent = 'Error: ' + data.message;
+                dispensingStatus.className = 'alert alert-danger';
+                resetBtn.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            // Show error message
+            console.error('Error during dispensing:', error);
+            dispensingMessage.textContent = 'Error: Unable to communicate with the dispenser.';
+            dispensingStatus.className = 'alert alert-danger';
+            resetBtn.classList.remove('d-none');
+        });
+    }
