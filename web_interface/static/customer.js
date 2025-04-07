@@ -700,8 +700,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    const languageSwitchBtn = document.getElementById("language-switch-btn");
+    if (languageSwitchBtn) {
+
     if (initialScreen) {
         restoreUIState(initialScreen);
+    }
+
     // Add event listener for language switch to save state
     const languageSwitchBtn = document.getElementById("language-switch-btn");
     if (languageSwitchBtn) {
