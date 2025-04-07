@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const ready = document.getElementById('ready');
     
     // Elements - Age Verification
-    // Elements - Age Verification
     const verificationMethods = document.getElementById("verification-methods");
     const orderSummary = document.getElementById("order-summary");
     const verifyAgeBtn = document.getElementById("verify-age-btn");
@@ -36,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const webcamResultMessage = document.getElementById("webcam-result-message");
     const webcamProceedBtn = document.getElementById("webcam-proceed-btn");
     const webcamRetryBtn = document.getElementById("webcam-retry-btn");
+    const webcamVideo = document.getElementById("webcam-video");
 
     // State for webcam
     let webcamStream = null;
@@ -45,20 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const verificationErrorMessage = document.getElementById('verification-error-message');
     
     // Webcam elements
-    const webcamVideo = document.getElementById('webcam-video');
-    const webcamCanvas = document.getElementById('webcam-canvas');
-    const webcamPlaceholder = document.getElementById('webcam-placeholder');
-    const webcamStartBtn = document.getElementById('webcam-start-btn');
-    const webcamCaptureBtn = document.getElementById('webcam-capture-btn');
-    const webcamBackBtn = document.getElementById('webcam-back-btn');
-    const webcamResult = document.getElementById('webcam-result');
-    const webcamResultMessage = document.getElementById('webcam-result-message');
-    const webcamProceedBtn = document.getElementById('webcam-proceed-btn');
-    const webcamRetryBtn = document.getElementById('webcam-retry-btn');
-    
-    // State for webcam
-    let webcamStream = null;
-    let capturedImage = null;
     
     // Elements - Dispensing
     const dispensingStepCup = document.getElementById('dispensing-step-cup');
