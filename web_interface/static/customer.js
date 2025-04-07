@@ -1209,7 +1209,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ageVerification) ageVerification.classList.add('d-none');
         if (dispensing) dispensing.classList.add('d-none');
         if (ready) ready.classList.add('d-none');
-        if (progressContainer) progressContainer.classList.add('d-none');
+        // Check if we need to keep the progress bar visible (from URL or session)
+        const urlParams = new URLSearchParams(window.location.search);
+        const keepProgressFromServer = (typeof keepProgress !== 'undefined') ? keepProgress : false;
+        const showProgressBar = keepProgressFromServer || (urlParams.has('keepProgress') && urlParams.get('keepProgress') === 'true');
+        
+        if (progressContainer) {
+            if (!showProgressBar) {
+                progressContainer.classList.add('d-none');
+            } else {
+                progressContainer.classList.remove('d-none');
+            }
+        }
+        
         if (shoppingCart) shoppingCart.classList.add('d-none');
         if (paymentScreen) paymentScreen.classList.add('d-none');
         if (paymentProcessing) paymentProcessing.classList.add('d-none');

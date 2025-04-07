@@ -1,0 +1,8 @@
+{% block scripts %}
+<script>
+// Pass language and progress state to JavaScript
+const language = "{{ language }}";
+const keepProgress = {{ keep_progress|default(false)|lower }};
+</script>
+<script src="{{ url_for('static', filename='customer.js') }}"></script>
+{% endblock %}

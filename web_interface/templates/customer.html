@@ -218,7 +218,7 @@
 {% endif %}
 
 <!-- Progress Steps -->
-<div id="progress-container" class="d-none mb-5">
+<div id="progress-container" class="{% if not session.get("keep_progress", False) %}d-none{% endif %} mb-5">
     <div class="row">
         <div class="col-2 text-center progress-step active" id="step-selection">
             <div class="progress-step-line"></div>
@@ -736,5 +736,10 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// Pass language and progress state to JavaScript
+const language = "{{ language }}";
+const keepProgress = {{ keep_progress|default(false)|lower }};
+</script>
 <script src="{{ url_for('static', filename='customer.js') }}"></script>
 {% endblock %}
