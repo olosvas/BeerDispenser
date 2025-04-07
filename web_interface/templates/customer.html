@@ -553,37 +553,9 @@
                         
                         <p id="dispensing-status" class="text-center fw-bold">{% if language == "sk" %}Inicializácia...{% else %}Initializing...{% endif %}</p>
                         
-                        <!-- Enhanced Dispensing Animation -->
+                        <!-- Dispensing animation placeholder -->
                         <div id="dispensing-animation" class="dispensing-animation text-center mb-4">
-                            <div class="dispensing-container position-relative" style="height: 350px;">
-                                <!-- Cup dispenser -->
-                                <div id="cup-dispenser" class="position-absolute" style="top: 0; left: 50%; transform: translateX(-50%);">
-                                    <div class="cup-storage p-2 bg-dark rounded" style="width: 80px; height: 60px;">
-                                        <i class="fas fa-glass-whiskey text-light fa-2x"></i>
-                                    </div>
-                                </div>
-                                
-                                <!-- Beer tap -->
-                                <div id="beer-tap" class="position-absolute" style="top: 0; left: 50%; transform: translateX(-90px);">
-                                    <div class="tap-handle bg-secondary rounded-pill" style="width: 15px; height: 40px; margin-left: 10px;"></div>
-                                    <div class="tap-body bg-dark rounded" style="width: 50px; height: 30px;"></div>
-                                    <div id="tap-nozzle" class="tap-nozzle bg-secondary rounded-bottom" style="width: 10px; height: 15px; margin-left: 20px;"></div>
-                                </div>
-                                
-                                <!-- Beer stream (hidden initially) -->
-                                <div id="beer-stream" class="position-absolute bg-warning d-none" style="width: 5px; left: 50%; transform: translateX(-65px); top: 85px; height: 0; opacity: 0.9;"></div>
-                                
-                                <!-- Cup (hidden initially) -->
-                                <div id="beverage-cup" class="position-absolute d-none" style="bottom: 80px; left: 50%; transform: translateX(-40px);">
-                                    <div class="glass">
-                                        <div class="foam"></div>
-                                        <div id="beer-liquid" class="beer"></div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Cup delivery area -->
-                                <div id="delivery-area" class="position-absolute rounded bg-dark" style="bottom: 0; left: 50%; transform: translateX(-50%); width: 150px; height: 40px;"></div>
-                            </div>
+                            <img src="/static/system.svg" alt="Dispensing System" class="img-fluid" style="max-height: 250px;">
                         </div>
                     </div>
                 </div>
