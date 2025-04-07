@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const verificationStatus = document.getElementById('verification-status');
     const verificationProgress = document.getElementById('verification-progress');
     const verificationResult = document.getElementById('verification-result');
-    const shopCartItemsContainer = document.getElementById('shopping-cart-items');
     const cartTotalElements = document.querySelectorAll('.cart-total');
     const cartItemCountElements = document.querySelectorAll('.cart-item-count');
     const emptyCartMessage = document.getElementById('empty-cart-message');
@@ -319,6 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         saveState();
+        saveStateToServer();
     }
     /**
      * Increase the quantity of the current selection
