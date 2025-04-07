@@ -22,15 +22,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const ready = document.getElementById('ready');
     
     // Elements - Age Verification
+    // Elements - Age Verification
     const verificationMethods = document.getElementById("verification-methods");
-    const webcamVerification = document.getElementById("webcam-verification");
-    const orderSummary = document.getElementById('order-summary').querySelector('span');
-    const verifyAgeBtn = document.getElementById('verify-age-btn');
-    const verificationForm = document.getElementById('verification-form');
-    const verificationMethods = document.getElementById('verification-methods');
-    const webcamVerification = document.getElementById('webcam-verification');
-    // Webcam elements
-    const webcamVideo = document.getElementById("webcam-video");
+    const orderSummary = document.getElementById("order-summary");
+    const verifyAgeBtn = document.getElementById("verify-age-btn");
+    const verificationForm = document.getElementById("verification-form");
     const webcamCanvas = document.getElementById("webcam-canvas");
     const webcamPlaceholder = document.getElementById("webcam-placeholder");
     const webcamStartBtn = document.getElementById("webcam-start-btn");
