@@ -135,16 +135,36 @@ def save_state():
         return jsonify({"error": "System not available"}), 503
     
     # Get state data
-    state_data = request.json.get('ui_state', {})
+    state_data = request.json.get('state', {})
     
     # Associate with session
     session_id = session.get('session_id', 'anonymous')
     
     # In a real implementation, this would be saved to a database
-    # Here we just log it
+    # Here we just log it and store in session
     logger.debug(f"Saving state for session {session_id}: {state_data}")
     
+    # Store the state in the session
+    session['ui_state'] = state_data
+    
     return jsonify({"status": "State saved"})
+
+
+@app.route('/api/get_state', methods=['GET'])
+def get_state():
+    """Get the saved UI state."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    # Associate with session
+    session_id = session.get('session_id', 'anonymous')
+    
+    # Get state from session
+    state_data = session.get('ui_state', {})
+    
+    logger.debug(f"Retrieving state for session {session_id}: {state_data}")
+    
+    return jsonify({"state": state_data})
 
 
 @app.route('/api/errors', methods=['GET'])
