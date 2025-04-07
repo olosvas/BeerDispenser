@@ -25,12 +25,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // DOM elements
     const beverageTypeSelection = document.getElementById('beverage-type-selection');
     const beverageSizeSelection = document.getElementById('beverage-size-selection');
-    const ageVerificationScreen = document.getElementById('age-verification-screen');
+    const ageVerificationScreen = document.getElementById('age-verification');
     const dispensingScreen = document.getElementById('dispensing-screen');
     const orderCompleteScreen = document.getElementById('order-complete-screen');
     
-    const beverageTypeOptions = document.querySelectorAll('.beverage-option');
-    const beverageSizeOptions = document.querySelectorAll('.size-option');
+    const beverageTypeOptions = document.querySelectorAll('.beverage-type-option');
+    const beverageSizeOptions = document.querySelectorAll('.beverage-size-option');
     
     const continueTypeBtn = document.getElementById('continue-type-btn');
     const backToTypeBtn = document.getElementById('back-to-type-btn');
@@ -117,98 +117,118 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Event Listeners for Beverage Selection
-    beverageTypeOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            // Deselect all options
-            beverageTypeOptions.forEach(opt => opt.classList.remove('selected'));
-            
-            // Select current option
-            this.classList.add('selected');
-            
-            // Enable continue button
-            continueTypeBtn.disabled = false;
-            
-            // Store selection
-            selectedBeverage = this.dataset.beverage;
+    if (beverageTypeOptions.length > 0) {
+        beverageTypeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Deselect all options
+                beverageTypeOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Select current option
+                this.classList.add('selected');
+                
+                // Enable continue button
+                if (continueTypeBtn) {
+                    continueTypeBtn.disabled = false;
+                }
+                
+                // Store selection
+                selectedBeverage = this.dataset.type;
+                
+                // Update display text if available
+                const displayElem = document.getElementById('beverage-type-display');
+                if (displayElem && displayElem.querySelector('span')) {
+                    displayElem.querySelector('span').textContent = selectedBeverage;
+                }
+            });
         });
-    });
+    }
     
     // Event Listeners for Size Selection
-    beverageSizeOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            // Deselect all options
-            beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
-            
-            // Select current option
-            this.classList.add('selected');
-            
-            // Enable continue button
-            continueSizeBtn.disabled = false;
-            
-            // Store selection
-            selectedSize = this.dataset.size;
+    if (beverageSizeOptions.length > 0) {
+        beverageSizeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Deselect all options
+                beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
+                
+                // Select current option
+                this.classList.add('selected');
+                
+                // Enable continue button
+                if (continueSizeBtn) {
+                    continueSizeBtn.disabled = false;
+                }
+                
+                // Store selection
+                selectedSize = this.dataset.size;
+            });
         });
-    });
+    }
     
     // Continue Type Button
-    continueTypeBtn.addEventListener('click', function() {
-        beverageTypeSelection.classList.add('d-none');
-        beverageSizeSelection.classList.remove('d-none');
-        progressContainer.classList.remove('d-none');
-        stepSelection.classList.add('active');
-    });
+    if (continueTypeBtn) {
+        continueTypeBtn.addEventListener('click', function() {
+            beverageTypeSelection.classList.add('d-none');
+            beverageSizeSelection.classList.remove('d-none');
+            progressContainer.classList.remove('d-none');
+            stepSelection.classList.add('active');
+        });
+    }
     
     // Back to Type Selection
-    backToTypeBtn.addEventListener('click', function() {
-        beverageSizeSelection.classList.add('d-none');
-        beverageTypeSelection.classList.remove('d-none');
-        progressContainer.classList.add('d-none');
-        stepSelection.classList.remove('active');
-    });
+    if (backToTypeBtn) {
+        backToTypeBtn.addEventListener('click', function() {
+            beverageSizeSelection.classList.add('d-none');
+            beverageTypeSelection.classList.remove('d-none');
+            progressContainer.classList.add('d-none');
+            stepSelection.classList.remove('active');
+        });
+    }
     
     // Continue Size Button - Start dispensing or trigger age verification
-    continueSizeBtn.addEventListener('click', function() {
-        fetch('/api/dispense', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                beverage_type: selectedBeverage,
-                size_ml: selectedSize
+    if (continueSizeBtn) {
+        continueSizeBtn.addEventListener('click', function() {
+            fetch('/api/dispense', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    beverage_type: selectedBeverage,
+                    size_ml: selectedSize
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.requires_age_verification) {
-                // Show age verification screen
-                beverageSizeSelection.classList.add('d-none');
-                ageVerificationScreen.classList.remove('d-none');
-                stepVerification.classList.add('active');
-                
-                // Initialize webcam if needed
-                if (typeof startWebcam === 'function') {
-                    startWebcam();
+            .then(response => response.json())
+            .then(data => {
+                if (data.requires_age_verification) {
+                    // Show age verification screen
+                    beverageSizeSelection.classList.add('d-none');
+                    ageVerificationScreen.classList.remove('d-none');
+                    stepVerification.classList.add('active');
+                    
+                    // Initialize webcam if needed
+                    if (typeof startWebcam === 'function') {
+                        startWebcam();
+                    }
+                } else {
+                    // Show dispensing screen directly
+                    beverageSizeSelection.classList.add('d-none');
+                    dispensingScreen.classList.remove('d-none');
+                    stepDispensing.classList.add('active');
+                    
+                    // Add to cart
+                    addToCart(selectedBeverage, selectedSize);
+                    
+                    // Start dispensing process
+                    startDispensing();
                 }
-            } else {
-                // Show dispensing screen directly
-                beverageSizeSelection.classList.add('d-none');
-                dispensingScreen.classList.remove('d-none');
-                stepDispensing.classList.add('active');
-                
-                // Add to cart
-                addToCart(selectedBeverage, selectedSize);
-                
-                // Start dispensing process
-                startDispensing();
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            // Display error message
-            alert('An error occurred. Please try again.');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Display error message
+                alert('An error occurred. Please try again.');
+            });
         });
-    });
+    }
     
     // Initialize UI state from server if available
     const initialScreen = document.body.dataset.initialScreen || null;
@@ -219,9 +239,11 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedBeverage = selectedBeverageFromServer;
         // Find and select the beverage option
         beverageTypeOptions.forEach(option => {
-            if (option.dataset.beverage === selectedBeverage) {
+            if (option.dataset.type === selectedBeverage) {
                 option.classList.add('selected');
-                continueTypeBtn.disabled = false;
+                if (continueTypeBtn) {
+                    continueTypeBtn.disabled = false;
+                }
             }
         });
     }
@@ -232,7 +254,9 @@ document.addEventListener('DOMContentLoaded', function() {
         beverageSizeOptions.forEach(option => {
             if (option.dataset.size === selectedSize) {
                 option.classList.add('selected');
-                continueSizeBtn.disabled = false;
+                if (continueSizeBtn) {
+                    continueSizeBtn.disabled = false;
+                }
             }
         });
     }
@@ -315,7 +339,7 @@ function captureWebcamImage() {
     .then(data => {
         if (data.is_adult) {
             // Age verification successful, show dispensing screen
-            document.getElementById('age-verification-screen').classList.add('d-none');
+            document.getElementById('age-verification').classList.add('d-none');
             document.getElementById('dispensing-screen').classList.remove('d-none');
             document.getElementById('step-dispensing').classList.add('active');
             
@@ -354,7 +378,10 @@ function showWebcamError(message) {
 // Dispensing functionality
 function startDispensing() {
     // Show the dispensing interface
-    document.getElementById('dispensing-status').textContent = 'Initializing...';
+    const statusElement = document.getElementById('dispensing-status');
+    if (statusElement) {
+        statusElement.textContent = 'Initializing...';
+    }
     
     // Start polling for status
     monitorOrderProgress();
@@ -377,8 +404,10 @@ function monitorOrderProgress() {
                     showOrderComplete();
                 } else if (data.status === 'error') {
                     clearInterval(intervalId);
-                    statusElement.textContent = 'Error: ' + data.message;
-                    statusElement.classList.add('text-danger');
+                    if (statusElement) {
+                        statusElement.textContent = 'Error: ' + data.message;
+                        statusElement.classList.add('text-danger');
+                    }
                 }
             })
             .catch(error => {
@@ -405,8 +434,11 @@ function updateDispenseUI(state) {
 
 function showOrderComplete() {
     // Hide dispensing screen, show order complete
-    document.getElementById('dispensing-screen').classList.add('d-none');
-    document.getElementById('order-complete-screen').classList.remove('d-none');
+    const dispensingScreen = document.getElementById('dispensing-screen');
+    const orderCompleteScreen = document.getElementById('order-complete-screen');
+    
+    if (dispensingScreen) dispensingScreen.classList.add('d-none');
+    if (orderCompleteScreen) orderCompleteScreen.classList.remove('d-none');
     
     // Clear cart and selections
     cartItems = [];
@@ -415,22 +447,35 @@ function showOrderComplete() {
     
     // Set a timeout to return to the start screen
     setTimeout(() => {
-        document.getElementById('order-complete-screen').classList.add('d-none');
-        document.getElementById('beverage-type-selection').classList.remove('d-none');
+        if (orderCompleteScreen) orderCompleteScreen.classList.add('d-none');
+        
+        const beverageTypeSelection = document.getElementById('beverage-type-selection');
+        if (beverageTypeSelection) beverageTypeSelection.classList.remove('d-none');
         
         // Reset progress steps
-        document.getElementById('progress-container').classList.add('d-none');
-        document.getElementById('step-selection').classList.remove('active');
-        document.getElementById('step-verification').classList.remove('active');
-        document.getElementById('step-dispensing').classList.remove('active');
+        const progressContainer = document.getElementById('progress-container');
+        const stepSelection = document.getElementById('step-selection');
+        const stepVerification = document.getElementById('step-verification');
+        const stepDispensing = document.getElementById('step-dispensing');
+        
+        if (progressContainer) progressContainer.classList.add('d-none');
+        if (stepSelection) stepSelection.classList.remove('active');
+        if (stepVerification) stepVerification.classList.remove('active');
+        if (stepDispensing) stepDispensing.classList.remove('active');
         
         // Disable continue buttons
-        document.getElementById('continue-type-btn').disabled = true;
-        document.getElementById('continue-size-btn').disabled = true;
+        const continueTypeBtn = document.getElementById('continue-type-btn');
+        const continueSizeBtn = document.getElementById('continue-size-btn');
+        
+        if (continueTypeBtn) continueTypeBtn.disabled = true;
+        if (continueSizeBtn) continueSizeBtn.disabled = true;
         
         // Reset selections
-        document.querySelectorAll('.beverage-option').forEach(opt => opt.classList.remove('selected'));
-        document.querySelectorAll('.size-option').forEach(opt => opt.classList.remove('selected'));
+        const beverageTypeOptions = document.querySelectorAll('.beverage-type-option');
+        const beverageSizeOptions = document.querySelectorAll('.beverage-size-option');
+        
+        beverageTypeOptions.forEach(opt => opt.classList.remove('selected'));
+        beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
     }, 5000); // 5 seconds
 }
 
