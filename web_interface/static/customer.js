@@ -411,11 +411,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (stepSelection) stepSelection.classList.add('active');
                 if (stepCart) stepCart.classList.add('active');
                 if (stepVerification) stepVerification.classList.add('active');
-                
-                // Initialize webcam if needed
-                if (typeof startWebcam === 'function') {
-                    startWebcam();
-                }
             } else {
                 // Go directly to dispensing
                 hideAllScreens();
@@ -429,6 +424,110 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Start dispensing process
                 startDispensing();
             }
+        });
+    }
+    
+    // Webcam Verify Button
+    const webcamVerifyBtn = document.getElementById('webcam-verify-btn');
+    if (webcamVerifyBtn) {
+        webcamVerifyBtn.addEventListener('click', function() {
+            // Show webcam verification interface
+            const webcamVerification = document.getElementById('webcam-verification');
+            if (webcamVerification) {
+                webcamVerification.classList.remove('d-none');
+            }
+            
+            // Hide verification methods
+            const verificationMethods = document.getElementById('verification-methods');
+            if (verificationMethods) {
+                verificationMethods.classList.add('d-none');
+            }
+            
+            // Initialize webcam
+            initializeWebcam();
+        });
+    }
+    
+    // Webcam Start Button
+    const webcamStartBtn = document.getElementById('webcam-start-btn');
+    if (webcamStartBtn) {
+        webcamStartBtn.addEventListener('click', function() {
+            startWebcam();
+            
+            // Enable capture button, disable start button
+            const webcamCaptureBtn = document.getElementById('webcam-capture-btn');
+            if (webcamCaptureBtn) {
+                webcamCaptureBtn.disabled = false;
+            }
+            this.disabled = true;
+        });
+    }
+    
+    // Webcam Capture Button
+    const webcamCaptureBtn = document.getElementById('webcam-capture-btn');
+    if (webcamCaptureBtn) {
+        webcamCaptureBtn.addEventListener('click', function() {
+            captureWebcamImage();
+        });
+    }
+    
+    // Webcam Back Button
+    const webcamBackBtn = document.getElementById('webcam-back-btn');
+    if (webcamBackBtn) {
+        webcamBackBtn.addEventListener('click', function() {
+            // Hide webcam verification, show verification methods
+            const webcamVerification = document.getElementById('webcam-verification');
+            const verificationMethods = document.getElementById('verification-methods');
+            
+            if (webcamVerification) {
+                webcamVerification.classList.add('d-none');
+            }
+            
+            if (verificationMethods) {
+                verificationMethods.classList.remove('d-none');
+            }
+            
+            // Stop webcam
+            stopWebcam();
+        });
+    }
+    
+    // Webcam Retry Button
+    const webcamRetryBtn = document.getElementById('webcam-retry-btn');
+    if (webcamRetryBtn) {
+        webcamRetryBtn.addEventListener('click', function() {
+            // Reset webcam and verification
+            const webcamResult = document.getElementById('webcam-result');
+            const webcamProceedBtn = document.getElementById('webcam-proceed-btn');
+            
+            if (webcamResult) {
+                webcamResult.classList.add('d-none');
+            }
+            
+            if (webcamProceedBtn) {
+                webcamProceedBtn.classList.add('d-none');
+            }
+            
+            // Restart webcam
+            resetWebcam();
+        });
+    }
+    
+    // Webcam Proceed Button
+    const webcamProceedBtn = document.getElementById('webcam-proceed-btn');
+    if (webcamProceedBtn) {
+        webcamProceedBtn.addEventListener('click', function() {
+            // Proceed to dispensing
+            hideAllScreens();
+            if (dispensingScreen) dispensingScreen.classList.remove('d-none');
+            if (progressContainer) progressContainer.classList.remove('d-none');
+            if (stepSelection) stepSelection.classList.add('active');
+            if (stepCart) stepCart.classList.add('active');
+            if (stepVerification) stepVerification.classList.add('active');
+            if (stepDispensing) stepDispensing.classList.add('active');
+            
+            // Start dispensing process
+            startDispensing();
         });
     }
     
@@ -566,8 +665,23 @@ document.addEventListener('DOMContentLoaded', function() {
 let webcamElement = null;
 let webcamStream = null;
 
+function initializeWebcam() {
+    webcamElement = document.getElementById('webcam-video');
+    const webcamPlaceholder = document.getElementById('webcam-placeholder');
+    
+    // Make sure the video element is visible
+    if (webcamElement) {
+        webcamElement.style.display = 'block';
+    }
+    
+    // Hide placeholder if exists
+    if (webcamPlaceholder) {
+        webcamPlaceholder.style.display = 'none';
+    }
+}
+
 function startWebcam() {
-    webcamElement = document.getElementById('webcam');
+    webcamElement = document.getElementById('webcam-video');
     
     if (!webcamElement) {
         showWebcamError('Webcam element not found');
@@ -579,6 +693,18 @@ function startWebcam() {
         .then(function(stream) {
             webcamStream = stream;
             webcamElement.srcObject = stream;
+            
+            // Enable capture button
+            const captureBtn = document.getElementById('webcam-capture-btn');
+            if (captureBtn) {
+                captureBtn.disabled = false;
+            }
+            
+            // Hide placeholder if exists
+            const webcamPlaceholder = document.getElementById('webcam-placeholder');
+            if (webcamPlaceholder) {
+                webcamPlaceholder.style.display = 'none';
+            }
         })
         .catch(function(error) {
             showWebcamError('Error accessing webcam: ' + error.message);
@@ -596,6 +722,24 @@ function stopWebcam() {
             webcamElement.srcObject = null;
         }
     }
+    
+    // Show placeholder if exists
+    const webcamPlaceholder = document.getElementById('webcam-placeholder');
+    if (webcamPlaceholder) {
+        webcamPlaceholder.style.display = 'flex';
+    }
+    
+    // Disable capture button
+    const captureBtn = document.getElementById('webcam-capture-btn');
+    if (captureBtn) {
+        captureBtn.disabled = true;
+    }
+    
+    // Enable start button
+    const startBtn = document.getElementById('webcam-start-btn');
+    if (startBtn) {
+        startBtn.disabled = false;
+    }
 }
 
 function captureWebcamImage() {
@@ -612,7 +756,44 @@ function captureWebcamImage() {
     // Convert to base64
     const imageData = canvas.toDataURL('image/jpeg');
     
-    // Send to server for age verification
+    // Show the webcam result section
+    const webcamResult = document.getElementById('webcam-result');
+    if (webcamResult) {
+        webcamResult.classList.remove('d-none');
+    }
+    
+    // Disable capture button during processing
+    const captureBtn = document.getElementById('webcam-capture-btn');
+    if (captureBtn) {
+        captureBtn.disabled = true;
+    }
+    
+    // Show loading message
+    const resultMessage = document.getElementById('webcam-result-message');
+    if (resultMessage) {
+        resultMessage.textContent = 'Verifying age...';
+    }
+    
+    // For demonstration, let's simulate a verification process with a timeout
+    setTimeout(() => {
+        // In a real app, you'd send the image to your server for verification
+        // For this demo, we'll simulate success
+        if (resultMessage) {
+            resultMessage.textContent = 'Age verification successful. You are old enough to purchase alcoholic beverages.';
+        }
+        
+        // Show proceed button
+        const proceedBtn = document.getElementById('webcam-proceed-btn');
+        if (proceedBtn) {
+            proceedBtn.classList.remove('d-none');
+        }
+        
+        // Stop the webcam to save resources
+        stopWebcam();
+    }, 2000);
+    
+    // In a real application, you would send the image data to the server for age verification
+    /*
     fetch('/api/verify_age', {
         method: 'POST',
         headers: {
@@ -620,47 +801,64 @@ function captureWebcamImage() {
         },
         body: JSON.stringify({
             image: imageData,
-            beverage_type: selectedBeverage
+            beverage_type: 'beer' // Assuming beer is what needs verification
         })
     })
     .then(response => response.json())
     .then(data => {
+        if (resultMessage) {
+            resultMessage.textContent = data.message || 'Verification complete.';
+        }
+        
         if (data.is_adult) {
-            // Age verification successful, show dispensing screen
-            const ageVerification = document.getElementById('age-verification');
-            const dispensingScreen = document.getElementById('dispensing-screen');
-            const stepDispensing = document.getElementById('step-dispensing');
-            
-            if (ageVerification) ageVerification.classList.add('d-none');
-            if (dispensingScreen) dispensingScreen.classList.remove('d-none');
-            if (stepDispensing) stepDispensing.classList.add('active');
-            
-            // Start dispensing process
-            startDispensing();
+            // Age verification successful, show proceed button
+            const proceedBtn = document.getElementById('webcam-proceed-btn');
+            if (proceedBtn) {
+                proceedBtn.classList.remove('d-none');
+            }
         } else {
             // Age verification failed
-            showWebcamError('Age verification failed: ' + data.message);
+            if (resultMessage) {
+                resultMessage.textContent = data.message || 'Age verification failed. You must be at least 18 years old.';
+            }
         }
     })
     .catch(error => {
         showWebcamError('Error verifying age: ' + error.message);
-    })
-    .finally(() => {
-        // Clean up webcam
-        stopWebcam();
     });
+    */
 }
 
 function resetWebcam() {
     stopWebcam();
     startWebcam();
+    
+    // Hide webcam result
+    const webcamResult = document.getElementById('webcam-result');
+    if (webcamResult) {
+        webcamResult.classList.add('d-none');
+    }
+    
+    // Hide proceed button
+    const proceedBtn = document.getElementById('webcam-proceed-btn');
+    if (proceedBtn) {
+        proceedBtn.classList.add('d-none');
+    }
+    
+    // Clear error message
+    showWebcamError('');
 }
 
 function showWebcamError(message) {
     const errorElement = document.getElementById('webcam-error');
     if (errorElement) {
-        errorElement.textContent = message;
-        errorElement.classList.remove('d-none');
+        if (message) {
+            errorElement.textContent = message;
+            errorElement.classList.remove('d-none');
+        } else {
+            errorElement.textContent = '';
+            errorElement.classList.add('d-none');
+        }
     }
 }
 
