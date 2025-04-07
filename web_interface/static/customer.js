@@ -486,9 +486,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     hideAllScreens();
                     if (ageVerificationScreen) ageVerificationScreen.classList.remove('d-none');
                     if (stepVerification) stepVerification.classList.add('active');
-                    
-                    // Initialize webcam if available
-                    startWebcam();
                 } else {
                     // Skip age verification for non-alcoholic beverages
                     hideAllScreens();
@@ -510,26 +507,111 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Age Verification
-        const verifyAgeBtn = document.getElementById('verify-age-btn');
-        const skipVerificationBtn = document.getElementById('skip-verification-btn');
+        // Age Verification - New event listeners for the new UI
+        const webcamVerifyBtn = document.getElementById('webcam-verify-btn');
+        const idCardVerifyBtn = document.getElementById('id-card-verify-btn');
+        const webcamStartBtn = document.getElementById('webcam-start-btn');
+        const webcamCaptureBtn = document.getElementById('webcam-capture-btn');
+        const webcamBackBtn = document.getElementById('webcam-back-btn');
+        const webcamProceedBtn = document.getElementById('webcam-proceed-btn');
+        const webcamRetryBtn = document.getElementById('webcam-retry-btn');
         
-        if (verifyAgeBtn) {
-            verifyAgeBtn.addEventListener('click', captureWebcamImage);
+        // Verification method selection
+        if (webcamVerifyBtn) {
+            webcamVerifyBtn.addEventListener('click', function() {
+                // Show webcam verification UI
+                document.getElementById('verification-methods').classList.add('d-none');
+                document.getElementById('webcam-verification').classList.remove('d-none');
+            });
         }
         
-        if (skipVerificationBtn) {
-            skipVerificationBtn.addEventListener('click', function() {
-                // Simulate verification success
+        if (idCardVerifyBtn) {
+            idCardVerifyBtn.addEventListener('click', function() {
+                // Show ID card verification UI
+                document.getElementById('verification-methods').classList.add('d-none');
+                document.getElementById('verification-form').classList.remove('d-none');
+            });
+        }
+        
+        // Webcam controls
+        if (webcamStartBtn) {
+            webcamStartBtn.addEventListener('click', startWebcam);
+        }
+        
+        if (webcamCaptureBtn) {
+            webcamCaptureBtn.addEventListener('click', captureWebcamImage);
+        }
+        
+        if (webcamBackBtn) {
+            webcamBackBtn.addEventListener('click', function() {
+                // Stop webcam if running
+                stopWebcam();
+                
+                // Go back to methods selection
+                document.getElementById('webcam-verification').classList.add('d-none');
+                document.getElementById('verification-methods').classList.remove('d-none');
+                
+                // Reset UI elements
+                document.getElementById('webcam-result').classList.add('d-none');
+                document.getElementById('webcam-loading').classList.add('d-none');
+                document.getElementById('webcam-error').classList.add('d-none');
+            });
+        }
+        
+        if (webcamProceedBtn) {
+            webcamProceedBtn.addEventListener('click', function() {
+                // Proceed to dispensing
                 hideAllScreens();
                 if (dispensingScreen) dispensingScreen.classList.remove('d-none');
                 if (stepDispensing) stepDispensing.classList.add('active');
                 
-                // Stop webcam if active
+                // Stop webcam
                 stopWebcam();
                 
                 // Start dispensing
                 startDispensing();
+            });
+        }
+        
+        if (webcamRetryBtn) {
+            webcamRetryBtn.addEventListener('click', function() {
+                // Hide result and reset
+                document.getElementById('webcam-result').classList.add('d-none');
+                resetWebcam();
+            });
+        }
+        
+        // ID Card form submission
+        const verificationForm = document.getElementById('verification-form');
+        if (verificationForm) {
+            verificationForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Simple mock verification - in real system would call API
+                const birthDateInput = document.getElementById('birthdate');
+                if (!birthDateInput) return;
+                
+                const birthDate = new Date(birthDateInput.value);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                
+                // Verify age (18+ for alcohol)
+                if (age >= 18) {
+                    // Success - proceed to dispensing
+                    hideAllScreens();
+                    if (dispensingScreen) dispensingScreen.classList.remove('d-none');
+                    if (stepDispensing) stepDispensing.classList.add('active');
+                    
+                    // Start dispensing
+                    startDispensing();
+                } else {
+                    // Too young - show error
+                    alert('Je nám ľúto, ale pre nákup alkoholických nápojov musíte mať najmenej 18 rokov.');
+                }
             });
         }
     }
@@ -538,21 +620,39 @@ document.addEventListener('DOMContentLoaded', function() {
     let webcamStream = null;
     
     function startWebcam() {
-        const webcamElement = document.getElementById('webcam');
-        if (!webcamElement) return;
+        const webcamElement = document.getElementById('webcam-video');
+        const startButton = document.getElementById('webcam-start-btn');
+        const captureButton = document.getElementById('webcam-capture-btn');
+        const errorElement = document.getElementById('webcam-error');
+        
+        if (!webcamElement) {
+            console.error("Webcam video element not found");
+            return;
+        }
+        
+        if (errorElement) errorElement.classList.add('d-none');
         
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            startButton.disabled = true;
+            
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(function(stream) {
                     webcamStream = stream;
                     webcamElement.srcObject = stream;
                     webcamElement.play();
+                    
+                    // Enable capture button once video is playing
+                    webcamElement.onloadedmetadata = function() {
+                        if (captureButton) captureButton.disabled = false;
+                    };
                 })
                 .catch(function(error) {
-                    showWebcamError("Could not access webcam: " + error.message);
+                    console.error("Webcam error:", error);
+                    showWebcamError("Nepodarilo sa pristúpiť ku kamere: " + error.message);
+                    if (startButton) startButton.disabled = false;
                 });
         } else {
-            showWebcamError("Your browser does not support webcam access");
+            showWebcamError("Váš prehliadač nepodporuje prístup ku kamere");
         }
     }
     
@@ -569,27 +669,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function captureWebcamImage() {
-        const webcamElement = document.getElementById('webcam');
-        const captureBtn = document.getElementById('verify-age-btn');
+        const webcamElement = document.getElementById('webcam-video');
+        const captureBtn = document.getElementById('webcam-capture-btn');
         const statusElement = document.getElementById('verification-status');
+        const canvasElement = document.getElementById('webcam-canvas');
+        const loadingElement = document.getElementById('webcam-loading');
+        const resultElement = document.getElementById('webcam-result');
         
-        if (!webcamElement || !captureBtn || !statusElement) return;
+        if (!webcamElement || !canvasElement || !statusElement) {
+            console.error("Required webcam elements not found");
+            return;
+        }
         
-        // Disable button during processing
-        captureBtn.disabled = true;
-        statusElement.textContent = "Processing...";
-        statusElement.className = "text-info";
+        // Show loading, hide controls
+        if (loadingElement) loadingElement.classList.remove('d-none');
+        if (resultElement) resultElement.classList.add('d-none');
+        if (captureBtn) captureBtn.disabled = true;
         
         try {
             // Create canvas and capture image
-            const canvas = document.createElement('canvas');
-            canvas.width = webcamElement.videoWidth;
-            canvas.height = webcamElement.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(webcamElement, 0, 0, canvas.width, canvas.height);
+            canvasElement.width = webcamElement.videoWidth;
+            canvasElement.height = webcamElement.videoHeight;
+            const ctx = canvasElement.getContext('2d');
+            ctx.drawImage(webcamElement, 0, 0, canvasElement.width, canvasElement.height);
             
             // Get image data
-            const imageData = canvas.toDataURL('image/jpeg');
+            const imageData = canvasElement.toDataURL('image/jpeg');
             
             // Send to server for verification
             fetch('/api/verify_age', {
@@ -604,12 +709,30 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
+                // Hide loading
+                if (loadingElement) loadingElement.classList.add('d-none');
+                if (resultElement) resultElement.classList.remove('d-none');
+                
                 if (data.verified) {
                     // Success
-                    statusElement.textContent = "Age verified successfully! Starting dispensing...";
-                    statusElement.className = "text-success";
+                    if (statusElement) {
+                        statusElement.textContent = "Vek úspešne overený! Začínam čapovanie...";
+                        statusElement.parentElement.className = "alert alert-success";
+                    }
                     
-                    // Proceed to dispensing
+                    // Show estimated age if available
+                    const ageElement = document.getElementById('estimated-age');
+                    if (ageElement && data.estimated_age) {
+                        ageElement.textContent = `Odhadovaný vek: ${data.estimated_age} rokov`;
+                    }
+                    
+                    // Show proceed button
+                    const proceedBtn = document.getElementById('webcam-proceed-btn');
+                    if (proceedBtn) {
+                        proceedBtn.classList.remove('d-none');
+                    }
+                    
+                    // Proceed to dispensing after delay
                     setTimeout(() => {
                         hideAllScreens();
                         if (dispensingScreen) dispensingScreen.classList.remove('d-none');
@@ -620,33 +743,48 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         // Start dispensing
                         startDispensing();
-                    }, 1500);
+                    }, 3000);
                 } else {
                     // Failed verification
-                    statusElement.textContent = data.message || "Age verification failed. Please try again or get assistance.";
-                    statusElement.className = "text-danger";
-                    captureBtn.disabled = false;
+                    if (statusElement) {
+                        statusElement.textContent = data.message || "Overenie veku zlyhalo. Skúste to znova alebo požiadajte o pomoc.";
+                        statusElement.parentElement.className = "alert alert-danger";
+                    }
+                    
+                    // Enable retry button
+                    if (captureBtn) captureBtn.disabled = false;
                 }
             })
             .catch(error => {
                 console.error('Error verifying age:', error);
-                statusElement.textContent = "Error processing verification. Please try again.";
-                statusElement.className = "text-danger";
-                captureBtn.disabled = false;
+                if (loadingElement) loadingElement.classList.add('d-none');
+                if (resultElement) resultElement.classList.remove('d-none');
+                
+                if (statusElement) {
+                    statusElement.textContent = "Chyba pri spracovaní overenia. Skúste to znova.";
+                    statusElement.parentElement.className = "alert alert-danger";
+                }
+                
+                if (captureBtn) captureBtn.disabled = false;
             });
         } catch (error) {
             console.error('Error capturing image:', error);
-            statusElement.textContent = "Error capturing image. Please try again.";
-            statusElement.className = "text-danger";
-            captureBtn.disabled = false;
+            if (loadingElement) loadingElement.classList.add('d-none');
+            
+            if (statusElement) {
+                statusElement.textContent = "Chyba pri zachytení snímky. Skúste to znova.";
+                statusElement.parentElement.className = "alert alert-danger";
+            }
+            
+            if (captureBtn) captureBtn.disabled = false;
         }
     }
     
     function showWebcamError(message) {
-        const statusElement = document.getElementById('verification-status');
-        if (statusElement) {
-            statusElement.textContent = message;
-            statusElement.className = "text-danger";
+        const errorElement = document.getElementById('webcam-error');
+        if (errorElement) {
+            errorElement.textContent = message;
+            errorElement.classList.remove('d-none');
         }
     }
     
