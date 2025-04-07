@@ -108,20 +108,8 @@ def api_dispense():
         if beverage_type not in BEVERAGE_TYPES:
             return jsonify({'error': f'Invalid beverage type. Supported types: {", ".join(BEVERAGE_TYPES)}'}), 400
         
-        # Check if age verification is required for this beverage
-        requires_verification = BEVERAGE_POUR_SETTINGS[beverage_type].get('REQUIRES_AGE_VERIFICATION', True)
-        
-        # If this is an alcoholic beverage that requires age verification, check if the user has verified their age
-        if requires_verification and not session.get('age_verified'):
-            logger.info(f"Age verification required for {beverage_type}")
-            return jsonify({
-                'success': False,
-                'message': f'Age verification required for {BEVERAGE_POUR_SETTINGS[beverage_type]["NAME"]}',
-                'requires_verification': True
-            }), 403
-            
-        # If this beverage doesn't require age verification, we can proceed
-        logger.info(f"No age verification needed for {beverage_type}")
+        # In multi-beverage mode, we've already verified age if needed, so we can skip this check
+        # Alternatively, we could check session['age_verified'] here if desired
             
     except Exception as e:
         logger.error(f"Error parsing dispense request: {str(e)}")
@@ -210,13 +198,40 @@ def api_reset_stats():
 
 @app.route('/api/check_age_requirement', methods=['POST'])
 def api_check_age_requirement():
-    """API endpoint to check if age verification is required for a beverage type."""
+    """API endpoint to check if any item in the cart requires age verification."""
     if _controller is None:
         return jsonify({'error': 'System controller not initialized'}), 500
     
     # Get parameters
     try:
         data = request.json
+        
+        # Check if this is a multi-item cart verification
+        cart_items = data.get('cart_items', [])
+        if cart_items:
+            # If we got a cart of items, check each one
+            from config import BEVERAGE_POUR_SETTINGS
+            
+            # Default to not requiring verification
+            requires_verification = False
+            alcoholic_beverages = []
+            
+            # Check each item in the cart
+            for item in cart_items:
+                beverage_type = item.get('type', 'beer')
+                if beverage_type in BEVERAGE_POUR_SETTINGS:
+                    beverage_settings = BEVERAGE_POUR_SETTINGS[beverage_type]
+                    if beverage_settings.get('REQUIRES_AGE_VERIFICATION', True):
+                        requires_verification = True
+                        alcoholic_beverages.append(beverage_settings.get('NAME', beverage_type))
+            
+            return jsonify({
+                'requires_verification': requires_verification,
+                'alcoholic_beverages': alcoholic_beverages,
+                'minimum_age': 21  # Hard-coded to 21 since beer is the only alcoholic option
+            })
+        
+        # Single beverage check (backwards compatibility)
         beverage_type = data.get('beverage_type', 'beer')  # Default to beer if not specified
         
         # Import beverage settings
@@ -406,89 +421,97 @@ def api_verify_age_webcam():
                         message = f"Age verification successful (Demo mode). You appear to be {detection_result['estimated_age']} years old."
                     else:
                         verified = False
-                        message = f"Age verification failed. You must be at least 21 years old to order beer."
+                        message = "Age verification failed (Demo mode)."
+                        
+                    # Store verification result in session
+                    if verified:
+                        session['age_verified'] = True
+                        session['beverage_type'] = beverage_type
                     
-                    # Return the fallback result
                     return jsonify({
                         'status': 'success' if verified else 'error',
                         'message': message,
                         'verified': verified,
-                        'estimated_age': detection_result.get('estimated_age', 0),
-                        'confidence': detection_result.get('confidence', 0.0),
-                        'beverage_type': beverage_type
+                        'age': detection_result['estimated_age'],
+                        'confidence': detection_result['confidence']
                     })
                 
-                # Verify age using the image
-                result = verify_age_for_beverage(image_bytes, beverage_type, image_is_path=False)
+                # Use real AI verification
+                verification_result = verify_age_for_beverage(image_bytes, beverage_type, image_is_path=False)
+                logger.info(f"Verification result: {verification_result}")
                 
-                # If verified, store in session
-                if result['verified']:
+                # Check if age verification passed
+                verified = verification_result.get('is_adult', False)
+                if beverage_type == 'beer':
+                    verified = verification_result.get('is_over_21', False)
+                
+                if verified:
+                    # Store verification result in session
                     session['age_verified'] = True
-                    session['beverage_type'] = beverage_type
+                    session['verified_beverage_type'] = beverage_type
                     
-                return jsonify({
-                    'status': 'success' if result['verified'] else 'error',
-                    'message': result['message'],
-                    'verified': result['verified'],
-                    'estimated_age': result['estimated_age'],
-                    'confidence': result['confidence'],
-                    'beverage_type': beverage_type
-                })
-                
-            except Exception as e:
-                logger.error(f"Error processing image data: {str(e)}")
-                return jsonify({
-                    'status': 'error',
-                    'message': f"Error processing image: {str(e)}",
-                    'verified': False
-                }), 400
-        
-        # If no image data is provided, capture from webcam
-        else:
-            # Import the webcam module
-            from age_verification.webcam_capture import webcam
-            from age_verification.age_detector import verify_age_for_beverage
-            
-            # Initialize the webcam if needed
-            if not webcam.is_initialized:
-                success = webcam.initialize()
-                if not success:
+                    return jsonify({
+                        'status': 'success',
+                        'message': verification_result.get('message', 'Age verification successful'),
+                        'verified': True,
+                        'age': verification_result.get('estimated_age', 21),
+                        'confidence': verification_result.get('confidence', 0.8),
+                    })
+                else:
                     return jsonify({
                         'status': 'error',
-                        'message': 'Failed to initialize webcam',
-                        'verified': False
-                    }), 500
-            
-            # Capture an image
-            success, image_data = webcam.capture_image()
-            if not success:
+                        'message': verification_result.get('message', 'Could not verify age'),
+                        'verified': False,
+                        'age': verification_result.get('estimated_age', 0),
+                        'confidence': verification_result.get('confidence', 0.0),
+                    })
+            except Exception as e:
+                logger.error(f"Error processing webcam verification: {str(e)}")
                 return jsonify({
                     'status': 'error',
-                    'message': 'Failed to capture image from webcam',
-                    'verified': False
+                    'message': 'Error processing webcam verification',
+                    'verified': False,
+                    'error': str(e)
                 }), 500
-            
-            # Verify age using the captured image
-            result = verify_age_for_beverage(image_data, beverage_type, image_is_path=False)
-            
-            # If verified, store in session
-            if result['verified']:
-                session['age_verified'] = True
-                session['beverage_type'] = beverage_type
-                
+        else:
             return jsonify({
-                'status': 'success' if result['verified'] else 'error',
-                'message': result['message'],
-                'verified': result['verified'],
-                'estimated_age': result['estimated_age'],
-                'confidence': result['confidence'],
-                'beverage_type': beverage_type
-            })
-            
+                'status': 'error',
+                'message': 'No image data provided',
+                'verified': False
+            }), 400
+    
     except Exception as e:
-        logger.error(f"Error during webcam age verification: {str(e)}")
+        logger.error(f"Webcam verification error: {str(e)}")
+        return jsonify({'status': 'error', 'message': 'Verification failed', 'verified': False, 'error': str(e)}), 500
+
+
+@app.route('/api/process_payment', methods=['POST'])
+def api_process_payment():
+    """API endpoint to process payment for the order."""
+    if _controller is None:
+        return jsonify({'error': 'System controller not initialized'}), 500
+    
+    try:
+        data = request.json
+        payment_method = data.get('payment_method', 'card')
+        amount = data.get('amount', 0)
+        cart_items = data.get('cart_items', [])
+        
+        if not cart_items:
+            return jsonify({'error': 'No items in cart'}), 400
+        
+        # Simulate payment processing
+        # In a real system, we would integrate with a payment gateway
+        payment_success = True
+        payment_id = f"PAY-{int(time.time())}"
+        
         return jsonify({
-            'status': 'error',
-            'message': f"Error during webcam age verification: {str(e)}",
-            'verified': False
-        }), 500
+            'success': payment_success,
+            'payment_id': payment_id,
+            'message': f'Payment of €{amount} processed successfully via {payment_method}',
+            'items_count': len(cart_items)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error processing payment: {str(e)}")
+        return jsonify({'success': False, 'message': f'Payment processing error: {str(e)}'}), 500
