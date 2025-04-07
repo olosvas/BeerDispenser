@@ -205,6 +205,12 @@
 {% endblock %}
 
 {% block content %}
+<!-- Language Switcher -->
+{% include 'customer_language_switcher.html' %}
+
+<!-- Language Switcher -->
+{% include 'customer_language_switcher.html' %}
+
 <!-- Error Messages -->
 {% if error %}
 <div class="alert alert-danger" role="alert">
@@ -220,35 +226,35 @@
             <div class="progress-step-circle mx-auto">
                 <i class="fas fa-glass-water"></i>
             </div>
-            <p class="mt-2 mb-0">Selection</p>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Výber{% else %}Selection{% endif %}</p>
         </div>
         <div class="col-2 text-center progress-step" id="step-cart">
             <div class="progress-step-line"></div>
             <div class="progress-step-circle mx-auto">
                 <i class="fas fa-shopping-cart"></i>
             </div>
-            <p class="mt-2 mb-0">Cart</p>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Košík{% else %}Cart{% endif %}</p>
         </div>
         <div class="col-2 text-center progress-step" id="step-verification">
             <div class="progress-step-line"></div>
             <div class="progress-step-circle mx-auto">
                 <i class="fas fa-id-card"></i>
             </div>
-            <p class="mt-2 mb-0">Verification</p>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Overenie{% else %}Verification{% endif %}</p>
         </div>
         <div class="col-2 text-center progress-step" id="step-payment">
             <div class="progress-step-line"></div>
             <div class="progress-step-circle mx-auto">
                 <i class="fas fa-credit-card"></i>
             </div>
-            <p class="mt-2 mb-0">Payment</p>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Platba{% else %}Payment{% endif %}</p>
         </div>
         <div class="col-2 text-center progress-step" id="step-dispensing">
             <div class="progress-step-line"></div>
             <div class="progress-step-circle mx-auto">
                 <i class="fas fa-fill-drip"></i>
             </div>
-            <p class="mt-2 mb-0">Dispensing</p>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Čapovanie{% else %}Dispensing{% endif %}</p>
         </div>
         <div class="col-2 text-center progress-step" id="step-pickup">
             <div class="progress-step-circle mx-auto">
