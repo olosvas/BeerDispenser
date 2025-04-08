@@ -241,48 +241,6 @@
                         
                         <!-- Verification screen -->
                         <div id="verification-screen" class="screen d-none">
-                        <!-- Shopping Cart Screen -->
-                        <div id="shopping-cart" class="screen d-none">
-                            <h4 class="card-title text-center mb-4">{% if language == "sk" %}Váš košík{% else %}Your Shopping Cart{% endif %}</h4>
-                            
-                            <div class="cart-items-display">
-                                <div id="empty-cart-message" class="text-center my-5">
-                                    <i class="fas fa-shopping-cart fa-3x mb-3 text-muted"></i>
-                                    <p class="text-muted">{% if language == "sk" %}Váš košík je prázdny{% else %}Your cart is empty{% endif %}</p>
-                                </div>
-                                
-                                <div id="cart-items-view">
-                                    <div class="table-responsive">
-                                        <table class="table">
-                                            <thead>
-                                                <tr>
-                                                    <th>#</th>
-                                                    <th>{% if language == "sk" %}Položka{% else %}Item{% endif %}</th>
-                                                    <th>{% if language == "sk" %}Množstvo{% else %}Quantity{% endif %}</th>
-                                                    <th>{% if language == "sk" %}Cena{% else %}Price{% endif %}</th>
-                                                    <th></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="cart-items-container">
-                                                <!-- Cart items will be populated here -->
-                                            </tbody>
-                                            <tfoot>
-                                                <tr>
-                                                    <th colspan="3">{% if language == "sk" %}Celkom{% else %}Total{% endif %}</th>
-                                                    <td id="cart-total-price" class="fw-bold"></td>
-                                                    <td></td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    </div>
-                                    
-                                    <div class="text-center mt-4">
-                                        <button id="continue-shopping-btn" class="btn btn-outline-secondary btn-lg me-2">
-                                            <i class="fas fa-arrow-left me-2"></i> {% if language == "sk" %}Pokračovať v nákupe{% else %}Continue Shopping{% endif %}
-                                        </button>
-                                        <button id="proceed-to-verification-btn" class="btn btn-primary btn-lg">
-                                            <i class="fas fa-check me-2"></i> {% if language == "sk" %}Pokračovať{% else %}Proceed{% endif %}
-                                        </button>
                                     </div>
                                 </div>
                             </div>
