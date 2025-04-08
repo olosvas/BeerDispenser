@@ -93,24 +93,32 @@ class DispenseSequenceManager:
                     self.error_handler.handle_error("Cup delivery failed after maximum retries")
         return False
     
-    def execute_full_sequence(self, volume_ml=None):
+    def execute_full_sequence(self, volume_ml=None, beverage_type=None):
         """
-        Execute the complete beer dispensing sequence with error handling.
+        Execute the complete beverage dispensing sequence with error handling.
         
         Args:
             volume_ml (float, optional): Volume to pour in milliliters.
-        
+            beverage_type (str, optional): Type of beverage to pour ('beer', 'kofola', or 'birel').
+            
         Returns:
             bool: True if all steps were successful, False otherwise
             str: Error message if a step failed, or None if successful
         """
+        # Set beverage type if provided
+        if beverage_type and hasattr(self.beer_dispenser, 'set_beverage_type'):
+            self.beer_dispenser.set_beverage_type(beverage_type)
+            beverage_name = beverage_type.capitalize()
+        else:
+            beverage_name = "Beer"
+        
         # Step 1: Dispense cup
         if not self.dispense_cup_with_retry():
             return False, "Failed to dispense cup after multiple attempts"
         
-        # Step 2: Pour beer
+        # Step 2: Pour beverage
         if not self.pour_beer_with_retry(volume_ml):
-            return False, "Failed to pour beer after multiple attempts"
+            return False, f"Failed to pour {beverage_name.lower()} after multiple attempts"
         
         # Step 3: Deliver cup
         if not self.deliver_cup_with_retry():

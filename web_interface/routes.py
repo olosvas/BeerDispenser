@@ -39,7 +39,43 @@ def index():
 @app.route('/admin')
 def admin():
     """Admin interface for the beer dispensing system."""
-    return render_template('admin.html')
+    # Get current system state and stats from the controller
+    state = {
+        'state': 'idle',
+        'stats': {
+            'beverages_dispensed': 0,
+            'error_count': 0,
+            'uptime': '0h'
+        },
+        'logs': []
+    }
+    
+    if _controller:
+        # Get real system state if controller is available
+        state['state'] = _controller.get_current_state().lower()
+        
+        # Get statistics
+        with _controller.stats_lock:
+            stats = _controller.stats.copy()
+            
+            # Add start_time if not present
+            if 'start_time' not in stats:
+                stats['start_time'] = time.time()
+                
+            state['stats'] = {
+                'beverages_dispensed': stats.get('beers_poured', 0),
+                'error_count': stats.get('errors', 0),
+                'uptime': f"{int((time.time() - stats.get('start_time', time.time())) / 3600)}h"
+            }
+        
+        # Get error logs
+        logs = _controller.error_handler.get_error_history()
+        state['logs'] = [
+            {'message': log.get('message', ''), 'timestamp': log.get('timestamp', '')}
+            for log in logs[-5:] if log  # Get last 5 logs
+        ]
+    
+    return render_template('admin.html', state=state)
 
 
 @app.route('/control')
@@ -84,7 +120,8 @@ def system_status():
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
-    status = _controller.get_system_status()
+    # Use get_system_state instead of get_system_status
+    status = _controller.get_system_state()
     
     # Add additional information for the UI
     status['server_time'] = time.time()
@@ -118,7 +155,10 @@ def dispense():
     
     try:
         # Start dispensing sequence
-        success, message = _controller.dispense_sequence.execute_full_sequence(volume_ml=volume_ml)
+        success, message = _controller.dispense_sequence.execute_full_sequence(
+            volume_ml=volume_ml,
+            beverage_type=beverage_type
+        )
         
         if success:
             return jsonify({"status": "Dispensing successful", "message": message})

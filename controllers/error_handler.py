@@ -116,6 +116,14 @@ class ErrorHandler:
             # Return a copy to avoid threading issues
             return list(self.error_history)
     
+    def clear_error_history(self):
+        """
+        Clear the error history list.
+        """
+        with self.error_lock:
+            self.error_history = []
+            logger.info("Error history cleared")
+    
     def stop(self):
         """Stop the error processing thread."""
         self.processing = False
