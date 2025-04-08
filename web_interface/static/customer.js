@@ -72,12 +72,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let dispensingComplete = false;
     let dispensingMonitorInterval = null;
     let videoStream = null;
+    // List of beverages requiring age verification
+    const beveragesRequiringVerification = ['beer', 'birel'];
     let beverageRequiringVerification = null;
     
     // Verification retry state variables
     let verificationRetryCount = 0;
     const MAX_VERIFICATION_RETRIES = 5;
     let currentVerificationImage = null;
+    
+    // List of beverages requiring age verification
+    const beveragesRequiringVerification = ['beer', 'birel'];
     
     // Payment elements
     const paymentMethodOptions = document.querySelectorAll(".payment-method-option");
@@ -887,8 +892,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // List of beverages requiring age verification
-    const beveragesRequiringVerification = ['beer', 'birel'];
     
     function sendImageForVerification(imageDataURL, isRetry = false) {
         // Determine which beverage requires verification
