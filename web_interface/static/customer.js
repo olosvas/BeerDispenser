@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let beveragesRequiringVerification = ['beer', 'birel']; // Types that require age verification
 
     // DOM element references
-    const beverageTypeOptions = document.querySelectorAll('.beverage-option');
-    const beverageSizeOptions = document.querySelectorAll('.size-option');
+    const beverageTypeOptions = document.querySelectorAll('.beverage-type-option');
+    const beverageSizeOptions = document.querySelectorAll('.beverage-size-option');
     const beverageTypeDisplay = document.getElementById('selected-beverage-type');
     const continueTypeBtn = document.getElementById('continue-to-size-btn');
     const backToTypeBtn = document.getElementById('back-to-type-btn');
