@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // DOM element references
     const beverageTypeOptions = document.querySelectorAll('.beverage-type-option');
     const beverageSizeOptions = document.querySelectorAll('.beverage-size-option');
-    const beverageTypeDisplay = document.getElementById('selected-beverage-type');
-    const continueTypeBtn = document.getElementById('continue-to-size-btn');
+    // No beverage type display in the HTML, so we'll skip updating it
+    const continueTypeBtn = document.getElementById('continue-type-btn');
     const backToTypeBtn = document.getElementById('back-to-type-btn');
     const addToCartBtn = document.getElementById('add-to-cart-btn');
     const viewCartBtn = document.getElementById('view-cart-btn');
@@ -135,6 +135,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     showScreen('beverage-size-selection');
                 }
             });
+        } else {
+            console.error('continueTypeBtn not found');
         }
         
         if (backToTypeBtn) {
@@ -258,29 +260,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('beverageTypeOptions not found');
         }
         
-        // Update the beverage type display
-        if (beverageTypeDisplay) {
-            const language = document.documentElement.lang || 'en';
-            let beverageName = '';
-            
-            switch(type) {
-                case 'beer':
-                    beverageName = language === 'sk' ? 'Pivo' : 'Beer';
-                    break;
-                case 'kofola':
-                    beverageName = 'Kofola';
-                    break;
-                case 'birel':
-                    beverageName = 'Birel';
-                    break;
-                default:
-                    beverageName = type;
-            }
-            
-            beverageTypeDisplay.textContent = beverageName;
-        } else {
-            console.error('beverageTypeDisplay not found');
-        }
+        // We don't have a beverageTypeDisplay element in the HTML
+        // so we're skipping this part of the code
         
         // Enable the continue button
         if (continueTypeBtn) {
