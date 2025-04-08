@@ -88,13 +88,9 @@ def detect_age_from_image(image_data, image_is_path=False, beverage_type=None):
         
         # For demo purposes, we'll randomly choose an age that meets requirements
         import random
-        # For beer, we need 21+, for others 18+
-        if beverage_type == 'beer':
-            estimated_age = random.randint(21, 40)
-            is_over_21 = True
-        else:
-            estimated_age = random.randint(18, 40)
-            is_over_21 = estimated_age >= 21
+        # For all alcoholic beverages, we need 18+
+        estimated_age = random.randint(18, 40)
+        is_over_21 = estimated_age >= 21
         
         return {
             "estimated_age": estimated_age,
@@ -201,13 +197,9 @@ def detect_age_from_image(image_data, image_is_path=False, beverage_type=None):
         logger.error(f"Error during age detection: {str(e)}")
         # Use the same fallback method as above for any errors
         import random
-        # For beer, we need 21+, for others 18+
-        if beverage_type == 'beer':
-            estimated_age = random.randint(21, 40)
-            is_over_21 = True
-        else:
-            estimated_age = random.randint(18, 40)
-            is_over_21 = estimated_age >= 21
+        # For all alcoholic beverages, we need 18+
+        estimated_age = random.randint(18, 40)
+        is_over_21 = estimated_age >= 21
         
         return {
             "estimated_age": estimated_age,
@@ -235,7 +227,7 @@ def verify_age_for_beverage(image_data, beverage_type, image_is_path=False):
     # Get beverage settings
     beverage_settings = BEVERAGE_POUR_SETTINGS.get(beverage_type, BEVERAGE_POUR_SETTINGS['beer'])
     needs_verification = beverage_settings.get('REQUIRES_AGE_VERIFICATION', True)
-    minimum_age = 21 if beverage_type == 'beer' else 18
+    minimum_age = 18  # Set minimum age to 18 for all alcoholic beverages
     
     # If no verification needed, return success immediately
     if not needs_verification:
@@ -249,11 +241,8 @@ def verify_age_for_beverage(image_data, beverage_type, image_is_path=False):
     # Detect age
     detection_result = detect_age_from_image(image_data, image_is_path, beverage_type)
     
-    # Check age requirement
-    if beverage_type == 'beer' and detection_result.get('is_over_21', False):
-        verified = True
-        message = f"Age verification successful. You appear to be {detection_result['estimated_age']} years old, which meets the minimum age requirement of 21 for beer."
-    elif beverage_type in ['kofola', 'birel'] and detection_result.get('is_adult', False):
+    # Check age requirement - using is_adult (over 18) for all beverages
+    if detection_result.get('is_adult', False):
         verified = True
         message = f"Age verification successful. You appear to be {detection_result['estimated_age']} years old, which meets the minimum age requirement of 18."
     else:
