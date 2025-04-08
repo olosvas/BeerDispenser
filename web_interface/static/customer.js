@@ -457,6 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateCartCount() {
         // Calculate total items
         const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+        console.log('Cart total items:', totalItems);
         
         // Update cart count badge
         if (cartCount) {
@@ -469,28 +470,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 cartCount.classList.add('d-none');
                 if (cartIconContainer) cartIconContainer.classList.remove('has-items');
             }
+        } else {
+            console.log('Cart count element not found');
         }
         
         // Update checkout button state
         if (checkoutBtn) {
             checkoutBtn.disabled = totalItems === 0;
+            console.log('Checkout button disabled state:', checkoutBtn.disabled);
+        } else {
+            console.log('Checkout button element not found');
         }
     }
     
     function updateCartDisplay() {
-        if (!cartItemsContainer) return;
+        if (!cartItemsContainer) {
+            console.log('Cart items container not found');
+            return;
+        }
+        
+        console.log('Updating cart display with', cartItems.length, 'items');
         
         // Clear existing items
         cartItemsContainer.innerHTML = '';
         
         // Check if cart is empty
         if (cartItems.length === 0) {
+            console.log('Cart is empty, showing empty message');
             if (emptyCartMessage) emptyCartMessage.classList.remove('d-none');
             if (cartTotalItems) cartTotalItems.textContent = '0';
             if (cartTotal) cartTotal.textContent = '€0.00';
             return;
         }
         
+        console.log('Cart has items, hiding empty message');
         // Hide empty cart message
         if (emptyCartMessage) emptyCartMessage.classList.add('d-none');
         
