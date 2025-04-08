@@ -861,7 +861,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const base64Data = imageDataURL.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
         
         // Send the image for verification
-        fetch('/api/verify-age', {
+        fetch('/api/verify_age', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -947,7 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let progress = 0;
         const progressInterval = setInterval(() => {
             // Fetch the current progress from the server
-            fetch('/api/order-status')
+            fetch('/api/dispensing_status')
                 .then(response => response.json())
                 .then(data => {
                     console.log('Order status:', data);
