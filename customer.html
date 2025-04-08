@@ -11,13 +11,14 @@
 <body>
     <div class="container-fluid p-0">
         <div class="language-switcher">
-            <a href="{{ url_for('customer', language='en') }}" class="language-option {% if language == 'en' %}active{% endif %}">
+            <a href="{{ url_for('customer_interface', language='en') }}" class="language-option {% if language == 'en' %}active{% endif %}">
                 <img src="{{ url_for('static', filename='flags/en.svg') }}" alt="English" class="flag-icon">
             </a>
-            <a href="{{ url_for('customer', language='sk') }}" class="language-option {% if language == 'sk' %}active{% endif %}">
+            <a href="{{ url_for('customer_interface', language='sk') }}" class="language-option {% if language == 'sk' %}active{% endif %}">
                 <img src="{{ url_for('static', filename='flags/sk.svg') }}" alt="Slovak" class="flag-icon">
             </a>
         </div>
+    
         <div class="row g-0 vh-100">
             <!-- Left panel with system image and status -->
             <div class="col-md-3 system-panel">

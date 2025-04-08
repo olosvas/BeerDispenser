@@ -772,15 +772,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function startWebcam() {
         // Hide the capture result and show webcam
-        document.getElementById("webcam-result").classList.add("d-none");
-        document.getElementById("webcam-verification").classList.remove("d-none");
+        document.getElementById('webcam-result').classList.add('d-none');
+        document.getElementById('webcam-verification').classList.remove('d-none');
         
         // Hide capture button until webcam is ready
-        if (webcamCaptureBtn) webcamCaptureBtn.classList.add("d-none");
+        if (webcamCaptureBtn) webcamCaptureBtn.classList.add('d-none');
         
         // Hide any previous errors
-        const errorElement = document.getElementById("webcam-error");
-        if (errorElement) errorElement.classList.add("d-none");
+        const errorElement = document.getElementById('webcam-error');
+        if (errorElement) errorElement.classList.add('d-none');
         
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: true })
@@ -791,22 +791,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         webcamFeed.play();
                         
                         // Show capture button now that webcam is ready
-                        if (webcamCaptureBtn) webcamCaptureBtn.classList.remove("d-none");
+                        if (webcamCaptureBtn) webcamCaptureBtn.classList.remove('d-none');
                         // Hide start button
-                        if (webcamStartBtn) webcamStartBtn.classList.add("d-none");
+                        if (webcamStartBtn) webcamStartBtn.classList.add('d-none');
                     }
                 })
                 .catch(function(err) {
                     console.error("Error accessing webcam: ", err);
-                    showWebcamError(document.documentElement.lang === "sk" ? 
-                        "Chyba pri prístupe ku kamere. Povoľte prosím prístup ku kamere." : 
-                        "Error accessing camera. Please allow camera access.");
+                    showWebcamError(document.documentElement.lang === 'sk' ? 
+                        'Chyba pri prístupe ku kamere. Povoľte prosím prístup ku kamere.' : 
+                        'Error accessing camera. Please allow camera access.');
                 });
         } else {
-            showWebcamError(document.documentElement.lang === "sk" ? 
-                "Váš prehliadač nepodporuje prístup ku kamere." : 
-                "Your browser does not support camera access.");
-        }}
+            showWebcamError(document.documentElement.lang === 'sk' ? 
+                'Váš prehliadač nepodporuje prístup ku kamere.' : 
+                'Your browser does not support camera access.');
+        }
+    }
     
     function stopWebcam() {
         if (webcamStream) {
@@ -879,8 +880,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                image_data: imageDataURL, // Send the full data URL
-                beverage_type: cartItems.map(item => item.beverage).filter((value, index, self) => self.indexOf(value) === index)[0] || 'beer'
+                image_data: base64Data,
+                beverage_types: cartItems.map(item => item.beverage).filter((value, index, self) => self.indexOf(value) === index)
             })
         })
         .then(response => response.json())
