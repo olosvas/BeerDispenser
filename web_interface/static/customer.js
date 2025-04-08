@@ -65,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM Elements:');
     console.log('beverageTypeOptions:', beverageTypeOptions ? beverageTypeOptions.length : 'not found');
     console.log('beverageSizeOptions:', beverageSizeOptions ? beverageSizeOptions.length : 'not found');
-    console.log('beverageTypeDisplay:', beverageTypeDisplay ? 'found' : 'not found');
     console.log('continueTypeBtn:', continueTypeBtn ? 'found' : 'not found');
     console.log('backToTypeBtn:', backToTypeBtn ? 'found' : 'not found');
     console.log('addToCartBtn:', addToCartBtn ? 'found' : 'not found');
