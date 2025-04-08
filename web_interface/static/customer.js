@@ -14,6 +14,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const beverageTypeDisplay = document.getElementById('beverage-type-display') ? 
         document.getElementById('beverage-type-display').querySelector('span') : null;
     
+    // Debug logging
+    console.log('DOM Content Loaded');
+    console.log('Beverage type options found:', beverageTypeOptions.length);
+    console.log('Beverage size options found:', beverageSizeOptions.length);
+    console.log('Continue type button found:', continueTypeBtn ? 'Yes' : 'No');
+    console.log('Continue size button found:', continueSizeBtn ? 'Yes' : 'No');
+    
     // Elements - Sections
     const progressContainer = document.getElementById('progress-container');
     const beverageTypeSelection = document.getElementById('beverage-type-selection');
@@ -41,15 +48,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Store selection
             selectedBeverageType = this.getAttribute('data-type');
+            console.log('Beverage selected:', selectedBeverageType);
             
             // Update display
             if (beverageTypeDisplay) {
-                beverageTypeDisplay.textContent = this.querySelector('.beverage-name').textContent;
+                beverageTypeDisplay.textContent = this.querySelector('.card-title').textContent;
             }
             
             // Enable continue button
             if (continueTypeBtn) {
                 continueTypeBtn.disabled = false;
+                console.log('Continue type button enabled');
             }
         });
     });
@@ -57,6 +66,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Attach event listeners to beverage size options
     beverageSizeOptions.forEach(option => {
         option.addEventListener('click', function() {
+            console.log('Size option clicked:', this.getAttribute('data-size'));
+            
             // Clear previous selection
             beverageSizeOptions.forEach(opt => opt.classList.remove('selected'));
             
@@ -65,10 +76,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Store selection
             selectedSize = parseInt(this.getAttribute('data-size'));
+            console.log('Size selected:', selectedSize);
             
             // Enable continue button
             if (continueSizeBtn) {
                 continueSizeBtn.disabled = false;
+                console.log('Continue size button enabled');
+            } else {
+                console.error('Continue size button not found in DOM');
             }
         });
     });
@@ -76,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Continue from Type Selection to Size Selection
     if (continueTypeBtn) {
         continueTypeBtn.addEventListener('click', function() {
+            console.log('Continue type button clicked');
             if (selectedBeverageType) {
                 // Hide type selection, show size selection
                 beverageTypeSelection.classList.add('d-none');
@@ -83,6 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Update progress
                 updateProgress(2);
+                console.log('Moved to size selection screen');
             }
         });
     }
@@ -90,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Back from Size Selection to Type Selection
     if (backToTypeBtn) {
         backToTypeBtn.addEventListener('click', function() {
+            console.log('Back to type button clicked');
             // Hide size selection, show type selection
             beverageSizeSelection.classList.add('d-none');
             beverageTypeSelection.classList.remove('d-none');
@@ -102,6 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Continue from Size Selection - check if age verification is needed
     if (continueSizeBtn) {
         continueSizeBtn.addEventListener('click', function() {
+            console.log('Continue size button clicked');
             // Update order summary
             if (orderSummary && beverageTypeDisplay) {
                 const beverageTypeName = beverageTypeDisplay.textContent;
@@ -120,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
+                console.log('Age verification check response:', data);
                 // Hide size selection
                 beverageSizeSelection.classList.add('d-none');
                 
@@ -127,11 +147,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show age verification
                     ageVerification.classList.remove('d-none');
                     updateProgress(3);
+                    console.log('Age verification required, showing verification screen');
                 } else {
                     // Skip to dispensing
                     dispensing.classList.remove('d-none');
                     updateProgress(4);
                     startDispensing();
+                    console.log('No age verification required, proceeding to dispensing');
                 }
             })
             .catch(error => {
@@ -141,6 +163,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateProgress(3);
             });
         });
+    } else {
+        console.error('Continue size button not found during initialization');
     }
     
     // Handle webcam verification
