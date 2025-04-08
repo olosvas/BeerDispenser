@@ -81,8 +81,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const MAX_VERIFICATION_RETRIES = 5;
     let currentVerificationImage = null;
     
-    // List of beverages requiring age verification
-    const beveragesRequiringVerification = ['beer', 'birel'];
     
     // Payment elements
     const paymentMethodOptions = document.querySelectorAll(".payment-method-option");
