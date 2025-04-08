@@ -87,7 +87,16 @@ def control():
 @app.route('/status')
 def status():
     """System status page."""
-    return render_template('status.html')
+    state = {}
+    errors = []
+    
+    if _controller:
+        # Get real system state
+        state = _controller.get_system_state()
+        # Get error history
+        errors = _controller.error_handler.get_error_history()
+    
+    return render_template('status.html', state=state, errors=errors)
 
 
 @app.route('/customer')
@@ -141,6 +150,26 @@ def system_reset():
         return jsonify({"status": "System reset successful"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/reset_stats', methods=['POST'])
+def reset_stats():
+    """Reset system statistics."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    try:
+        # Reset statistics
+        with _controller.stats_lock:
+            _controller.stats['cups_dispensed'] = 0
+            _controller.stats['beers_poured'] = 0
+            _controller.stats['total_volume_ml'] = 0
+            _controller.stats['errors'] = 0
+            _controller.stats['start_time'] = time.time()  # Reset uptime
+        
+        return jsonify({"status": "success", "message": "Statistics reset successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e), "message": "Failed to reset statistics"}), 500
 
 
 @app.route('/api/dispense', methods=['POST'])
@@ -198,6 +227,22 @@ def get_errors():
     return jsonify({
         "errors": errors
     })
+
+
+@app.route('/stop', methods=['POST'])
+def stop_operation():
+    """Emergency stop for the system."""
+    if _controller is None:
+        return jsonify({"error": "System not available"}), 503
+    
+    try:
+        success = _controller.stop_operation()
+        if success:
+            return jsonify({"status": "stopped", "message": "System stopped successfully"})
+        else:
+            return jsonify({"error": "Failed to stop system"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/maintenance', methods=['POST'])
