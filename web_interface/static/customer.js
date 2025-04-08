@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     restoreState();
     
     // Show the initial screen
-    showScreen('beverage-type-selection');
+    showScreen('selection-screen');
     
     function initializeUI() {
         console.log('Initializing UI elements');
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (backToTypeBtn) {
             backToTypeBtn.addEventListener('click', () => {
                 console.log('Back to type button clicked');
-                showScreen('beverage-type-selection');
+                showScreen('selection-screen');
             });
         }
         
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (continueShopping) {
             continueShopping.addEventListener('click', () => {
                 console.log('Continue shopping button clicked');
-                showScreen('beverage-type-selection');
+                showScreen('selection-screen');
             });
         }
         
@@ -640,11 +640,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Showing screen:', screenName);
         
         // Hide all screens
-        const allScreens = document.querySelectorAll('.container');
+        const allScreens = document.querySelectorAll('.screen');
         allScreens.forEach(screen => {
-            if (screen.id) {
-                screen.classList.add('d-none');
-            }
+            screen.classList.add('d-none');
         });
         
         // Show the requested screen
@@ -665,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateProgressBar(currentStep) {
         // Map screen IDs to progress steps
         const stepMapping = {
-            'beverage-type-selection': 'selection',
+            'selection-screen': 'selection',
             'beverage-size-selection': 'selection',
             'shopping-cart': 'cart',
             'age-verification': 'verification',
@@ -1025,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set a timer to return to the start screen
         setTimeout(() => {
-            showScreen('beverage-type-selection');
+            showScreen('selection-screen');
             updateProgressBar('selection');
         }, 10000); // Return after 10 seconds
     }

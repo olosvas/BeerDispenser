@@ -105,7 +105,7 @@
                 <div class="card main-card">
                     <div class="card-body p-4">
                         <!-- Selection screen -->
-                        <div id="selection-screen">
+                        <div id="selection-screen" class="screen">
                             <h4 class="card-title text-center mb-4">{% if language == "sk" %}Vyberte si nápoj{% else %}Select Your Beverage{% endif %}</h4>
                             
                             <div class="beverage-selection mb-4">
@@ -136,6 +136,11 @@
                                 </div>
                             </div>
                             
+                            <div class="text-center mt-3">
+                                <button id="continue-type-btn" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-arrow-right me-2"></i> {% if language == "sk" %}Pokračovať{% else %}Continue{% endif %}
+                                </button>
+                            </div>
                             <div id="size-selection" class="size-selection mb-4 d-none">
                                 <h5 class="text-center mb-3">{% if language == "sk" %}Vyberte veľkosť{% else %}Select Size{% endif %}</h5>
                                 <div class="row justify-content-center">
@@ -151,6 +156,14 @@
                                             <div class="size-icon size-large"></div>
                                             <div class="size-name">{% if language == "sk" %}Veľký (500ml){% else %}Large (500ml){% endif %}</div>
                                             <div class="size-price" id="large-price">€5.00</div>
+                                <div class="text-center mt-3">
+                                    <button id="back-to-type-btn" class="btn btn-outline-secondary btn-lg me-2">
+                                        <i class="fas fa-arrow-left me-2"></i> {% if language == "sk" %}Späť{% else %}Back{% endif %}
+                                    </button>
+                                    <button id="view-cart-from-size-btn" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-shopping-cart me-2"></i> {% if language == "sk" %}Zobraziť košík{% else %}View Cart{% endif %}
+                                    </button>
+                                </div>
                                         </div>
                                     </div>
                                 </div>
@@ -166,6 +179,7 @@
                                     <button id="increase-qty-btn" class="btn btn-outline-secondary btn-lg">
                                         <i class="fas fa-plus"></i>
                                     </button>
+                                <span id="cart-count" class="badge bg-primary cart-count">0</span>
                                 </div>
                             </div>
                             
@@ -189,13 +203,13 @@
                                                 <th></th>
                                             </tr>
                                         </thead>
-                                        <tbody id="cart-items">
+                                        <tbody id="cart-items-container">
                                             <!-- Cart items will be added dynamically here -->
                                         </tbody>
                                         <tfoot>
                                             <tr>
                                                 <td colspan="3" class="text-end fw-bold">{% if language == "sk" %}Celkom{% else %}Total{% endif %}</td>
-                                                <td id="cart-total" class="fw-bold"></td>
+                                                <td id="cart-total-price" class="fw-bold"></td>
                                                 <td></td>
                                             </tr>
                                         </tfoot>
@@ -222,7 +236,7 @@
                         </div>
                         
                         <!-- Verification screen -->
-                        <div id="verification-screen" class="d-none">
+                        <div id="verification-screen" class="screen d-none">
                             <h4 class="card-title text-center mb-4">{% if language == "sk" %}Overenie veku{% else %}Age Verification{% endif %}</h4>
                             <p class="verification-info text-center">
                                 {% if language == "sk" %}
@@ -310,7 +324,7 @@
                         <div id="webcam-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
                         
                         <!-- Payment screen -->
-                        <div id="payment-screen" class="d-none">
+                        <div id="payment-screen" class="screen d-none">
                             <h4 class="card-title text-center mb-4">{% if language == "sk" %}Platba{% else %}Payment{% endif %}</h4>
                             
                             <div class="order-summary mb-4">
@@ -375,7 +389,7 @@
                         </div>
                         
                         <!-- Dispensing screen -->
-                        <div id="dispensing-screen" class="d-none">
+                        <div id="dispensing-screen" class="screen d-none">
                             <h4 class="card-title text-center mb-4">{% if language == "sk" %}Výdaj nápojov{% else %}Dispensing Beverages{% endif %}</h4>
                             
                             <div class="dispensing-status text-center">
@@ -421,7 +435,7 @@
                         </div>
                         
                         <!-- Order complete screen -->
-                        <div id="order-complete-screen" class="d-none">
+                        <div id="order-complete-screen" class="screen d-none">
                             <div class="order-complete-content text-center">
                                 <div class="order-complete-icon mb-4">
                                     <i class="fas fa-check-circle"></i>

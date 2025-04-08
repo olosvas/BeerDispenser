@@ -266,7 +266,7 @@ def maintenance():
         return jsonify({"error": "Failed to change maintenance mode"}), 400
 
 
-@app.route('/verify_age', methods=['POST'])
+@app.route('/api/verify_age', methods=['POST'])
 def verify_age():
     """Handle age verification requests."""
     from age_verification.age_detector import verify_age_for_beverage, detect_age_from_image
@@ -274,8 +274,15 @@ def verify_age():
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
-    method = request.form.get('method', 'webcam')
-    beverage_type = request.form.get('beverage_type', 'beer')
+    data = request.get_json()
+    if data:
+        method = 'webcam'
+        beverage_type = data.get('beverage_type', 'beer')
+        image_data = data.get('image_data')
+    else:
+        method = request.form.get('method', 'webcam')
+        beverage_type = request.form.get('beverage_type', 'beer')
+        image_data = None
     
     if method == 'webcam':
         # Verification via webcam
@@ -519,57 +526,4 @@ def dispensing_status():
         "order_items": current_order['items']
     })
 
-@app.route('/api/verify_age', methods=['POST'])
-def api_verify_age():
-    """Handle age verification requests from the JavaScript frontend."""
-    
-    if _controller is None:
-        return jsonify({"error": "System not available"}), 503
-    
-    # Get JSON data from request
-    data = request.get_json()
-    if not data:
-        return jsonify({"success": False, "message": "No data provided"}), 400
-    
-    beverage_type = data.get('beverage_type', 'beer')
-    
-    logger.debug(f"Received verification request for beverage type: {beverage_type}")
-    
-    from age_verification.age_detector import verify_age_for_beverage, detect_age_from_image
-    import base64
-    
-    # Extract image and beverage type from JSON
-    image_data_url = data.get('image_data')
-    
-    if not image_data_url:
-        return jsonify({"success": False, "message": "No image provided"}), 400
-    
-    try:
-        # Extract base64 data from data URL
-        # Format: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...'
-        image_base64 = image_data_url.split(',')[1]
-        image_bytes = base64.b64decode(image_base64)
-        
-        # Verify age using the bytes directly
-        result = verify_age_for_beverage(image_bytes, beverage_type, image_is_path=False)
-        
-        logger.info(f"Age verification result: {result}")
-        
-        # Get verification status from the result
-        verified = result.get('verified', False)
-        
-        return jsonify({
-            "success": True,
-            "verified": verified,
-            "is_adult": verified,  # is_adult should match verified for consistent UI feedback
-            "message": result.get('message', 'Age verification complete.'),
-            "estimated_age": result.get('estimated_age', 0)
-        })
-        
-    except Exception as e:
-        logger.error(f"API age verification error: {str(e)}")
-        return jsonify({
-            "success": False,
-            "is_adult": False,
-            "message": "Error during age verification: " + str(e)
-        })
+
