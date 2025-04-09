@@ -86,7 +86,69 @@ def admin():
 @app.route('/control')
 def control():
     """Control panel for the beer dispensing system."""
-    return render_template('control.html')
+    # Initialize state information
+    state = {
+        'state': 'idle',
+        'beer_temp': 5.0,  # Default beer temperature
+        'sensors': {
+            'cup_present': False,
+            'weight': 0,
+            'last_update': int(time.time())
+        },
+        'stats': {
+            'cups_dispensed': 0,
+            'beers_poured': 0,
+            'total_volume_ml': 0,
+            'errors': 0,
+            'last_operation_time': 0.0,
+        }
+    }
+    
+    logger.info("Rendering control panel")
+    
+    if _controller:
+        # Get real system state if controller is available
+        logger.debug("Fetching system state from controller")
+        system_state = _controller.get_system_state()
+        
+        if isinstance(system_state, dict):
+            state['state'] = system_state.get('state', 'idle').lower()
+            logger.debug(f"Current system state: {state['state']}")
+            
+            # Add any additional sensor data from the controller
+            if 'sensors' in system_state:
+                state['sensors'].update(system_state['sensors'])
+                logger.debug(f"Sensor data loaded: {state['sensors']}")
+            
+            # Add beer temperature if available
+            if 'temperature' in system_state:
+                state['beer_temp'] = system_state['temperature']
+                logger.debug(f"Beer temperature loaded: {state['beer_temp']}")
+        
+        # Get statistics
+        with _controller.stats_lock:
+            stats = _controller.stats.copy()
+            logger.debug(f"Raw stats data: {stats}")
+            
+            # Update stats with available data
+            state['stats']['cups_dispensed'] = stats.get('cups_dispensed', 0)
+            state['stats']['beers_poured'] = stats.get('beers_poured', 0)
+            state['stats']['total_volume_ml'] = stats.get('total_volume_ml', 0)
+            state['stats']['errors'] = stats.get('errors', 0)
+            state['stats']['last_operation_time'] = stats.get('last_operation_time', 0.0)
+    else:
+        logger.warning("Controller not available, using default state")
+    
+    # Mock some data for development if needed
+    if state['beer_temp'] == 5.0 and 'hardware.mock_hardware' in sys.modules:
+        import random
+        state['beer_temp'] = round(random.uniform(4.0, 7.0), 1)
+        logger.debug(f"Using mock beer temperature: {state['beer_temp']}")
+    
+    # Add current server time
+    now = time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    return render_template('control.html', state=state, now=now)
 
 
 @app.route('/status')
