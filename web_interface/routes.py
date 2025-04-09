@@ -2,6 +2,7 @@
 Routes for the beer dispensing system web interface.
 """
 import logging
+import sys
 import time
 from flask import render_template, request, jsonify, redirect, url_for, session
 from web_interface.app import app
@@ -91,7 +92,79 @@ def control():
 @app.route('/status')
 def status():
     """System status page."""
-    return render_template('status.html')
+    # Initialize state information with all expected fields from the template
+    state = {
+        'state': 'idle',
+        'beer_temp': 5.0,  # Default temperature
+        'sensors': {
+            'cup_present': False,
+            'weight': 0,
+            'last_update': int(time.time())
+        },
+        'stats': {
+            'cups_dispensed': 0,
+            'beers_poured': 0,
+            'total_volume_ml': 0,
+            'errors': 0,
+            'last_operation_time': 0.0,
+            'beverages_dispensed': 0,
+            'error_count': 0,
+            'uptime': '0h'
+        },
+        'logs': []
+    }
+    
+    errors = []
+    
+    if _controller:
+        # Get real system state if controller is available
+        system_state = _controller.get_system_state()
+        
+        if isinstance(system_state, dict):
+            state['state'] = system_state.get('state', 'idle').lower()
+            
+            # Add any additional sensor data from the controller
+            if 'sensors' in system_state:
+                state['sensors'].update(system_state['sensors'])
+            
+            # Add beer temperature if available
+            if 'temperature' in system_state:
+                state['beer_temp'] = system_state['temperature']
+        
+        # Get statistics
+        with _controller.stats_lock:
+            stats = _controller.stats.copy()
+            
+            # Add start_time if not present
+            if 'start_time' not in stats:
+                stats['start_time'] = time.time()
+            
+            # Update stats with available data
+            state['stats']['cups_dispensed'] = stats.get('cups_dispensed', 0)
+            state['stats']['beers_poured'] = stats.get('beers_poured', 0)
+            state['stats']['total_volume_ml'] = stats.get('total_volume_ml', 0)
+            state['stats']['errors'] = stats.get('errors', 0)
+            state['stats']['last_operation_time'] = stats.get('last_operation_time', 0.0)
+            state['stats']['beverages_dispensed'] = stats.get('beers_poured', 0)
+            state['stats']['error_count'] = stats.get('errors', 0)
+            state['stats']['uptime'] = f"{int((time.time() - stats.get('start_time', time.time())) / 3600)}h"
+        
+        # Get error logs
+        errors = _controller.error_handler.get_error_history()
+        state['logs'] = [
+            {'message': log.get('message', ''), 'timestamp': log.get('timestamp', '')}
+            for log in errors[-5:] if log  # Get last 5 logs
+        ]
+    
+    # Mock some data for development if needed
+    if state['beer_temp'] == 5.0 and 'hardware.mock_hardware' in sys.modules:
+        import random
+        state['beer_temp'] = round(random.uniform(4.0, 7.0), 1)
+    
+    # Add current server time
+    now = time.strftime('%Y-%m-%d %H:%M:%S')
+    
+    return render_template('status.html', state=state, errors=errors, now=now)
 
 
 @app.route('/customer')
