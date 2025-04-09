@@ -114,10 +114,10 @@
                             <tbody id="system-log-table">
                                 {% if system_logs %}
                                     {% for log in system_logs %}
-                                    <tr class="log-{{ log.level.lower() }}">
-                                        <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <tr class="log-{{ log.level.lower() if log.level is string else log.level }}">
+                                        <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp is not string else log.timestamp }}</td>
                                         <td>
-                                            <span class="badge badge-{{ log.level.lower() }}">
+                                            <span class="badge badge-{{ log.level.lower() if log.level is string else log.level }}">
                                                 {{ log.level }}
                                             </span>
                                         </td>

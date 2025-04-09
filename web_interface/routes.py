@@ -782,11 +782,21 @@ def admin_logs():
         
         # Get system logs (most recent 100)
         system_logs = SystemLog.query.order_by(SystemLog.timestamp.desc()).limit(100).all()
-        context['system_logs'] = [log.to_dict() for log in system_logs]
+        try:
+            context['system_logs'] = [log.to_dict() for log in system_logs]
+        except (AttributeError, TypeError) as e:
+            logger.error(f"Error converting system logs to dict: {str(e)}")
+            # Fallback to using the model objects directly
+            context['system_logs'] = system_logs
         
         # Get dispensing logs (most recent 100)
         dispensing_logs = DispensingEvent.query.order_by(DispensingEvent.timestamp.desc()).limit(100).all()
-        context['dispensing_logs'] = [log.to_dict() for log in dispensing_logs]
+        try:
+            context['dispensing_logs'] = [log.to_dict() for log in dispensing_logs]
+        except (AttributeError, TypeError) as e:
+            logger.error(f"Error converting dispensing logs to dict: {str(e)}")
+            # Fallback to using the model objects directly
+            context['dispensing_logs'] = dispensing_logs
         
         # Calculate system log statistics
         info_count = db.session.query(func.count(SystemLog.id)).filter(SystemLog.level == 'INFO').scalar() or 0
@@ -800,7 +810,21 @@ def admin_logs():
         
         # Get last log time
         last_log = SystemLog.query.order_by(SystemLog.timestamp.desc()).first()
-        last_log_time = last_log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if last_log else 'N/A'
+        if last_log:
+            try:
+                if hasattr(last_log, 'to_dict'):
+                    last_log_dict = last_log.to_dict()
+                    if isinstance(last_log_dict.get('timestamp'), str):
+                        last_log_time = last_log_dict.get('timestamp')
+                    else:
+                        last_log_time = last_log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    last_log_time = last_log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            except Exception as e:
+                logger.error(f"Error formatting last log time: {str(e)}")
+                last_log_time = str(last_log.timestamp)
+        else:
+            last_log_time = 'N/A'
         
         # Calculate percentages for chart
         if total_count > 0:
@@ -845,7 +869,21 @@ def admin_logs():
         
         # Get last dispensing time
         last_dispensing = DispensingEvent.query.order_by(DispensingEvent.timestamp.desc()).first()
-        last_dispensed = last_dispensing.timestamp.strftime('%Y-%m-%d %H:%M:%S') if last_dispensing else 'N/A'
+        if last_dispensing:
+            try:
+                if hasattr(last_dispensing, 'to_dict'):
+                    last_dispensing_dict = last_dispensing.to_dict()
+                    if isinstance(last_dispensing_dict.get('timestamp'), str):
+                        last_dispensed = last_dispensing_dict.get('timestamp')
+                    else:
+                        last_dispensed = last_dispensing.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    last_dispensed = last_dispensing.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            except Exception as e:
+                logger.error(f"Error formatting last dispensing time: {str(e)}")
+                last_dispensed = str(last_dispensing.timestamp)
+        else:
+            last_dispensed = 'N/A'
         
         # Calculate percentages for chart
         if total_dispensing_count > 0:
