@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (viewCartFromSizeBtn) {
         viewCartFromSizeBtn.addEventListener('click', function() {
-            showCartScreen();
+    }            showCartScreen();
         });
     function selectSize(size) {
         selectedSize = size;
