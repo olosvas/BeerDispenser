@@ -4,8 +4,10 @@ Routes for the beer dispensing system web interface.
 import logging
 import sys
 import time
+from datetime import datetime, timedelta
 from flask import render_template, request, jsonify, redirect, url_for, session
 from web_interface.app import app
+from models import db
 
 # Get language configuration
 from config import LANGUAGES, DEFAULT_LANGUAGE
@@ -729,3 +731,189 @@ def api_verify_age():
             "is_adult": False,
             "message": "Error during age verification: " + str(e)
         })
+
+@app.route('/admin/logs')
+def admin_logs():
+    """Admin logs interface for viewing system and dispensing logs."""
+    from models import SystemLog, DispensingEvent
+    from sqlalchemy import func, distinct
+    from datetime import datetime, timedelta
+    
+    # Context for template
+    context = {
+        'system_logs': [],
+        'dispensing_logs': [],
+        'system_log_sources': [],
+        'system_log_stats': {
+            'info_count': 0,
+            'info_percent': 0,
+            'warning_count': 0,
+            'warning_percent': 0,
+            'error_count': 0,
+            'error_percent': 0,
+            'debug_count': 0,
+            'debug_percent': 0,
+            'total_count': 0,
+            'source_count': 0,
+            'last_log_time': 'N/A'
+        },
+        'dispensing_stats': {
+            'success_count': 0,
+            'success_percent': 0,
+            'failure_count': 0,
+            'failure_percent': 0,
+            'beer_count': 0,
+            'beer_percent': 0,
+            'kofola_count': 0,
+            'kofola_percent': 0,
+            'birel_count': 0,
+            'birel_percent': 0,
+            'total_volume': 0,
+            'avg_size': 0,
+            'last_dispensed': 'N/A',
+            'avg_duration': 0
+        }
+    }
+    
+    try:
+        # Get unique sources for filtering
+        unique_sources = db.session.query(distinct(SystemLog.source)).all()
+        context['system_log_sources'] = [source[0] for source in unique_sources]
+        
+        # Get system logs (most recent 100)
+        system_logs = SystemLog.query.order_by(SystemLog.timestamp.desc()).limit(100).all()
+        context['system_logs'] = [log.to_dict() for log in system_logs]
+        
+        # Get dispensing logs (most recent 100)
+        dispensing_logs = DispensingEvent.query.order_by(DispensingEvent.timestamp.desc()).limit(100).all()
+        context['dispensing_logs'] = [log.to_dict() for log in dispensing_logs]
+        
+        # Calculate system log statistics
+        info_count = db.session.query(func.count(SystemLog.id)).filter(SystemLog.level == 'INFO').scalar() or 0
+        warning_count = db.session.query(func.count(SystemLog.id)).filter(SystemLog.level == 'WARNING').scalar() or 0
+        error_count = db.session.query(func.count(SystemLog.id)).filter(SystemLog.level == 'ERROR').scalar() or 0
+        debug_count = db.session.query(func.count(SystemLog.id)).filter(SystemLog.level == 'DEBUG').scalar() or 0
+        total_count = info_count + warning_count + error_count + debug_count
+        
+        # Get number of unique sources
+        source_count = db.session.query(func.count(distinct(SystemLog.source))).scalar() or 0
+        
+        # Get last log time
+        last_log = SystemLog.query.order_by(SystemLog.timestamp.desc()).first()
+        last_log_time = last_log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if last_log else 'N/A'
+        
+        # Calculate percentages for chart
+        if total_count > 0:
+            info_percent = round((info_count / total_count) * 100)
+            warning_percent = round((warning_count / total_count) * 100)
+            error_percent = round((error_count / total_count) * 100)
+            debug_percent = round((debug_count / total_count) * 100)
+        else:
+            info_percent = warning_percent = error_percent = debug_percent = 0
+        
+        # Update system log statistics
+        context['system_log_stats'] = {
+            'info_count': info_count,
+            'info_percent': info_percent,
+            'warning_count': warning_count,
+            'warning_percent': warning_percent,
+            'error_count': error_count,
+            'error_percent': error_percent,
+            'debug_count': debug_count,
+            'debug_percent': debug_percent,
+            'total_count': total_count,
+            'source_count': source_count,
+            'last_log_time': last_log_time
+        }
+        
+        # Calculate dispensing statistics
+        success_count = db.session.query(func.count(DispensingEvent.id)).filter(DispensingEvent.successful == True).scalar() or 0
+        failure_count = db.session.query(func.count(DispensingEvent.id)).filter(DispensingEvent.successful == False).scalar() or 0
+        total_dispensing_count = success_count + failure_count
+        
+        # Calculate beverage type counts
+        beer_count = db.session.query(func.count(DispensingEvent.id)).filter(DispensingEvent.beverage_type == 'beer').scalar() or 0
+        kofola_count = db.session.query(func.count(DispensingEvent.id)).filter(DispensingEvent.beverage_type == 'kofola').scalar() or 0
+        birel_count = db.session.query(func.count(DispensingEvent.id)).filter(DispensingEvent.beverage_type == 'birel').scalar() or 0
+        
+        # Calculate total volume and average size
+        total_volume = db.session.query(func.sum(DispensingEvent.size_ml)).scalar() or 0
+        avg_size = db.session.query(func.avg(DispensingEvent.size_ml)).scalar() or 0
+        
+        # Calculate average duration
+        avg_duration = db.session.query(func.avg(DispensingEvent.duration_seconds)).filter(DispensingEvent.duration_seconds != None).scalar() or 0
+        
+        # Get last dispensing time
+        last_dispensing = DispensingEvent.query.order_by(DispensingEvent.timestamp.desc()).first()
+        last_dispensed = last_dispensing.timestamp.strftime('%Y-%m-%d %H:%M:%S') if last_dispensing else 'N/A'
+        
+        # Calculate percentages for chart
+        if total_dispensing_count > 0:
+            success_percent = round((success_count / total_dispensing_count) * 100)
+            failure_percent = round((failure_count / total_dispensing_count) * 100)
+            
+            beer_percent = round((beer_count / total_dispensing_count) * 100)
+            kofola_percent = round((kofola_count / total_dispensing_count) * 100)
+            birel_percent = round((birel_count / total_dispensing_count) * 100)
+        else:
+            success_percent = failure_percent = beer_percent = kofola_percent = birel_percent = 0
+        
+        # Update dispensing statistics
+        context['dispensing_stats'] = {
+            'success_count': success_count,
+            'success_percent': success_percent,
+            'failure_count': failure_count,
+            'failure_percent': failure_percent,
+            'beer_count': beer_count,
+            'beer_percent': beer_percent,
+            'kofola_count': kofola_count,
+            'kofola_percent': kofola_percent,
+            'birel_count': birel_count,
+            'birel_percent': birel_percent,
+            'total_volume': total_volume,
+            'avg_size': round(avg_size, 1) if avg_size else 0,
+            'last_dispensed': last_dispensed,
+            'avg_duration': round(avg_duration, 2) if avg_duration else 0
+        }
+        
+        # Add server time
+        context['now'] = time.strftime('%Y-%m-%d %H:%M:%S')
+        
+    except Exception as e:
+        logger.error(f"Error retrieving logs: {str(e)}")
+        context['error'] = f"Error retrieving logs: {str(e)}"
+    
+    return render_template('admin_logs.html', **context)
+
+@app.route('/api/log', methods=['POST'])
+def api_log():
+    """API endpoint to add log entries from JavaScript."""
+    from web_interface.utils.db_logger import log_to_db
+    
+    # Get JSON data from request
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "No data provided"}), 400
+    
+    # Extract log data
+    level = data.get('level', 'INFO').upper()
+    source = data.get('source', 'client')
+    message = data.get('message', '')
+    environment = data.get('environment', None)
+    
+    # Validate required fields
+    if not message:
+        return jsonify({"success": False, "message": "Log message is required"}), 400
+    
+    # Validate log level
+    valid_levels = ['INFO', 'WARNING', 'ERROR', 'DEBUG']
+    if level not in valid_levels:
+        level = 'INFO'  # Default to INFO for invalid levels
+    
+    try:
+        # Log to database
+        log_to_db(level, source, message, environment)
+        return jsonify({"success": True, "message": "Log entry created"})
+    except Exception as e:
+        logger.error(f"Error creating log entry: {str(e)}")
+        return jsonify({"success": False, "message": f"Error creating log entry: {str(e)}"}), 500

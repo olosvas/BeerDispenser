@@ -12,6 +12,35 @@ app = Flask(__name__)
 # Use a fixed secret key for development
 app.secret_key = os.environ.get("SESSION_SECRET", "development_secret_key")
 
+# Configure the database connection
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Import and initialize the database
+from models import db, SystemLog, DispensingEvent
+
+# Initialize the database with the Flask app
+db.init_app(app)
+
+# Create all tables if they don't exist
+with app.app_context():
+    db.create_all()
+    logger.info("Database tables created/verified")
+    
+    # Log application start
+    try:
+        SystemLog.log(
+            level="INFO",
+            source="system",
+            message="Application started and database initialized"
+        )
+    except Exception as e:
+        logger.error(f"Failed to log application start: {e}")
+
 # Import routes
 from web_interface import routes
 

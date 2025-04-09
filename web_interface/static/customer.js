@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let beverageName = item.beverage.charAt(0).toUpperCase() + item.beverage.slice(1);
             if (language === 'sk' && item.beverage === 'beer') {
-                beverageName = 'Pivo';
+                beverageName = 'Šariš 10';
             }
             
             itemElement.innerHTML = `
