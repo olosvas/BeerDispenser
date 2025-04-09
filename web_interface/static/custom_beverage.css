@@ -1,0 +1,8 @@
+/* Enhanced selected state for beverage options */
+.beverage-type-option.selected, .beverage-size-option.selected {
+    border-color: #0d6efd !important;
+    border-width: 3px !important;
+    background-color: rgba(13, 110, 253, 0.1);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    transform: translateY(-5px);
+}
