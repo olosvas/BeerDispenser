@@ -248,6 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
         option.addEventListener('click', function() {
             const type = this.getAttribute('data-type');
             selectBeverage(type);
+        console.log("Selected beverage:", type);
         });
     });
     
@@ -256,6 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
         option.addEventListener('click', function() {
             const size = parseInt(this.getAttribute('data-size'), 10);
             selectSize(size);
+        console.log("Selected size:", size);
         });
     });
     
