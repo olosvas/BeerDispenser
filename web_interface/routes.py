@@ -3,8 +3,12 @@ Routes for the beer dispensing system web interface.
 """
 import logging
 import time
+import os
 from flask import render_template, request, jsonify, redirect, url_for, session
 from web_interface.app import app
+
+# Import admin routes
+from web_interface.routes_admin import *
 
 # Get language configuration
 from config import LANGUAGES, DEFAULT_LANGUAGE
@@ -270,9 +274,13 @@ def maintenance():
 def verify_age():
     """Handle age verification requests."""
     from age_verification.age_detector import verify_age_for_beverage, detect_age_from_image
+    from models import SystemLog
     
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
+    
+    # Determine if this is running in production
+    environment = 'production' if os.environ.get('REPLIT_DEPLOYMENT') else 'development'
     
     data = request.get_json()
     if data:
@@ -284,6 +292,16 @@ def verify_age():
         beverage_type = request.form.get('beverage_type', 'beer')
         image_data = None
     
+    # Log verification attempt
+    SystemLog.log(
+        level='INFO',
+        source='age_verification',
+        message=f"Age verification attempt - Method: {method}, Beverage: {beverage_type}",
+        environment=environment,
+        client_ip=request.remote_addr,
+        user_agent=request.user_agent.string
+    )
+    
     if method == 'webcam':
         # Verification via webcam
         from age_verification.webcam_capture import WebcamCapture
@@ -294,9 +312,18 @@ def verify_age():
             initialized = webcam.initialize()
             
             if not initialized:
+                error_msg = "Nepodarilo sa inicializovať kameru." if session.get('language') == 'sk' else "Failed to initialize camera."
+                SystemLog.log(
+                    level='ERROR',
+                    source='age_verification.webcam',
+                    message=f"Webcam initialization failed - {error_msg}",
+                    environment=environment,
+                    client_ip=request.remote_addr,
+                    user_agent=request.user_agent.string
+                )
                 return jsonify({
                     "success": False,
-                    "message": "Nepodarilo sa inicializovať kameru." if session.get('language') == 'sk' else "Failed to initialize camera."
+                    "message": error_msg
                 })
             
             # Capture image
@@ -304,14 +331,33 @@ def verify_age():
             webcam.release()
             
             if not success:
+                error_msg = "Nepodarilo sa zachytiť fotografiu. Skúste prosím znova." if session.get('language') == 'sk' else "Failed to capture photo. Please try again."
+                SystemLog.log(
+                    level='ERROR',
+                    source='age_verification.webcam',
+                    message=f"Webcam capture failed - {error_msg}",
+                    environment=environment,
+                    client_ip=request.remote_addr,
+                    user_agent=request.user_agent.string
+                )
                 return jsonify({
                     "success": False,
-                    "message": "Nepodarilo sa zachytiť fotografiu. Skúste prosím znova." if session.get('language') == 'sk' else "Failed to capture photo. Please try again."
+                    "message": error_msg
                 })
             
             # Verify age
             try:
                 result = verify_age_for_beverage(image_data, beverage_type, image_is_path=True)
+                
+                # Log verification result
+                SystemLog.log(
+                    level='INFO',
+                    source='age_verification.result',
+                    message=f"Age verification result - Verified: {result.get('verified', False)}, Age: {result.get('estimated_age', 0)}, Beverage: {beverage_type}",
+                    environment=environment,
+                    client_ip=request.remote_addr,
+                    user_agent=request.user_agent.string
+                )
                 
                 return jsonify({
                     "success": True,
@@ -320,17 +366,35 @@ def verify_age():
                     "estimated_age": result.get('estimated_age', 0)
                 })
             except Exception as e:
+                error_msg = "Chyba pri overovaní veku." if session.get('language') == 'sk' else "Error during age verification."
                 logger.error(f"Age verification error: {str(e)}")
+                SystemLog.log(
+                    level='ERROR',
+                    source='age_verification.api',
+                    message=f"Age verification API error - {str(e)}",
+                    environment=environment,
+                    client_ip=request.remote_addr,
+                    user_agent=request.user_agent.string
+                )
                 return jsonify({
                     "success": False,
-                    "message": "Chyba pri overovaní veku." if session.get('language') == 'sk' else "Error during age verification."
+                    "message": error_msg
                 })
                 
         except Exception as e:
+            error_msg = "Problém s kamerou. Skúste prosím iný spôsob overenia." if session.get('language') == 'sk' else "Camera issue. Please try another verification method."
             logger.error(f"Webcam error: {str(e)}")
+            SystemLog.log(
+                level='ERROR',
+                source='age_verification.webcam',
+                message=f"General webcam error - {str(e)}",
+                environment=environment,
+                client_ip=request.remote_addr,
+                user_agent=request.user_agent.string
+            )
             return jsonify({
                 "success": False,
-                "message": "Problém s kamerou. Skúste prosím iný spôsob overenia." if session.get('language') == 'sk' else "Camera issue. Please try another verification method."
+                "message": error_msg
             })
     
     elif method == 'id_card':
@@ -425,6 +489,8 @@ def switch_language():
 @app.route('/api/start_dispensing', methods=['POST'])
 def start_dispensing():
     """Start the dispensing process for the cart items."""
+    from models import SystemLog, DispensingEvent
+    
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
@@ -437,10 +503,44 @@ def start_dispensing():
             "message": "No items in order"
         }), 400
     
+    # Determine if this is running in production
+    environment = 'production' if os.environ.get('REPLIT_DEPLOYMENT') else 'development'
+    
     try:
         # In a real implementation, this would trigger the actual hardware
         # Here we'll just simulate success
         logger.info(f"Starting dispensing for order: {order_items}")
+        
+        # Log the dispensing request
+        SystemLog.log(
+            level='INFO',
+            source='dispensing',
+            message=f"Dispensing order started with {len(order_items)} items",
+            environment=environment,
+            client_ip=request.remote_addr,
+            user_agent=request.user_agent.string
+        )
+        
+        # Record each beverage dispensing event
+        for item in order_items:
+            beverage_type = item.get('beverage', 'unknown')
+            size_ml = 500 if item.get('size') == 'large' else 300
+            quantity = item.get('quantity', 1)
+            
+            # Create dispensing event records
+            for i in range(quantity):
+                event = DispensingEvent(
+                    beverage_type=beverage_type,
+                    size_ml=size_ml,
+                    successful=True,  # Default to success, will be updated if needed
+                    duration_seconds=None,  # Will be updated when complete
+                    environment=environment,
+                    error_message=None
+                )
+                from web_interface.app import db
+                db.session.add(event)
+            
+        db.session.commit()
         
         # Store order in session for status checks
         session['current_order'] = {
@@ -458,6 +558,15 @@ def start_dispensing():
         })
     except Exception as e:
         logger.error(f"Error starting dispensing: {str(e)}")
+        # Log the error
+        SystemLog.log(
+            level='ERROR',
+            source='dispensing',
+            message=f"Error starting dispensing: {str(e)}",
+            environment=environment,
+            client_ip=request.remote_addr,
+            user_agent=request.user_agent.string
+        )
         return jsonify({
             "success": False,
             "message": str(e)
