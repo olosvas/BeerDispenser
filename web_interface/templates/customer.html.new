@@ -1,0 +1,626 @@
+{% extends 'layout.html' %}
+
+{% block title %}Order Beverage{% endblock %}
+
+{% block head %}
+<!-- Hidden inputs for UI state restoration -->
+<input type="hidden" id="current_screen" value="{{ current_screen }}">
+<input type="hidden" id="selected_beverage" value="{{ selected_beverage }}">
+<input type="hidden" id="selected_size" value="{{ selected_size }}">
+<style>
+    :root {
+        --beer-amber: #FFA500;
+        --beer-foam: #f5f5f5;
+        --kofola-brown: #4B2D1A;
+        --birel-color: #FFC857;
+    }
+
+    .beverage-type-option,
+    .beverage-size-option {
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .beverage-type-option:hover,
+    .beverage-size-option:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .beverage-type-option.selected,
+    .beverage-size-option.selected {
+        border-color: var(--bs-primary);
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    /* Cup and liquid animation */
+    .cup-container {
+        position: relative;
+        width: 160px;
+        height: 220px;
+        margin: 0 auto;
+    }
+    
+    .cup {
+        position: absolute;
+        width: 160px;
+        height: 220px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 5px 5px 70px 70px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        z-index: 10;
+    }
+    
+    .liquid {
+        position: absolute;
+        bottom: 0;
+        width: 152px;
+        height: 0%;
+        background-color: var(--beer-amber);
+        border-radius: 0 0 68px 68px;
+        transition: height 3s ease-in-out;
+        opacity: 0.9;
+        left: 4px;
+    }
+    
+    .liquid.beer {
+        background-color: var(--beer-amber);
+    }
+    
+    .liquid.kofola {
+        background-color: var(--kofola-brown);
+    }
+    
+    .liquid.birel {
+        background-color: var(--birel-color);
+    }
+    
+    .foam {
+        position: absolute;
+        bottom: 100%;
+        width: 152px;
+        height: 20px;
+        background-color: var(--beer-foam);
+        border-radius: 50% 50% 0 0;
+        transition: bottom 3s ease-in-out;
+        opacity: 0.9;
+        left: 4px;
+        z-index: 5;
+    }
+    
+    /* Progress steps */
+    .progress-step {
+        position: relative;
+        margin-bottom: 0;
+    }
+    
+    .progress-step-circle {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background-color: var(--bs-gray-600);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    
+    .progress-step.active .progress-step-circle {
+        background-color: var(--bs-primary);
+    }
+    
+    .progress-step.completed .progress-step-circle {
+        background-color: var(--bs-success);
+    }
+    
+    .progress-step-line {
+        position: absolute;
+        height: 3px;
+        background-color: var(--bs-gray-600);
+        width: 100%;
+        top: 17px;
+        left: 50%;
+        z-index: -1;
+    }
+    
+    .progress-step.completed .progress-step-line {
+        background-color: var(--bs-success);
+    }
+    
+    .progress-step:first-child .progress-step-line {
+        display: none;
+    }
+    
+    /* Order card hover effects */
+    .order-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .order-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Cart badge */
+    .cart-badge {
+        position: relative;
+        top: -10px;
+        right: -5px;
+        padding: 3px 6px;
+        border-radius: 50%;
+        background-color: var(--bs-danger);
+        color: white;
+        font-size: 0.7em;
+    }
+
+    /* Cart items list */
+    .cart-item {
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        padding: 8px 0;
+    }
+
+    /* Payment methods */
+    .payment-method-option {
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        padding: 15px;
+        border-radius: 10px;
+    }
+
+    .payment-method-option:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+
+    .payment-method-option.selected {
+        border-color: var(--bs-primary);
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    /* Quantity selector */
+    .quantity-selector {
+        display: flex;
+        align-items: center;
+    }
+    
+    .quantity-selector .btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .quantity-selector input {
+        width: 40px;
+        text-align: center;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        margin: 0 4px;
+    }
+    
+    /* Quick quantity buttons */
+    .quick-quantity-btn {
+        margin: 0 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Language Switcher -->
+{% include 'customer_language_switcher.html' %}
+
+<!-- Error Messages -->
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i> {{ error }}
+</div>
+{% endif %}
+
+<!-- Progress Steps -->
+<div id="progress-container" class="{% if not session.get("keep_progress", False) %}d-none{% endif %} mb-5">
+    <div class="row">
+        <div class="col-2 text-center progress-step active" id="step-selection">
+            <div class="progress-step-line"></div>
+            <div class="progress-step-circle mx-auto">
+                <i class="fas fa-glass-water"></i>
+            </div>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Výber{% else %}Selection{% endif %}</p>
+        </div>
+        <div class="col-2 text-center progress-step" id="step-cart">
+            <div class="progress-step-line"></div>
+            <div class="progress-step-circle mx-auto">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Košík{% else %}Cart{% endif %}</p>
+        </div>
+        <div class="col-2 text-center progress-step" id="step-verification">
+            <div class="progress-step-line"></div>
+            <div class="progress-step-circle mx-auto">
+                <i class="fas fa-id-card"></i>
+            </div>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Overenie{% else %}Verification{% endif %}</p>
+        </div>
+        <div class="col-2 text-center progress-step" id="step-payment">
+            <div class="progress-step-line"></div>
+            <div class="progress-step-circle mx-auto">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Platba{% else %}Payment{% endif %}</p>
+        </div>
+        <div class="col-2 text-center progress-step" id="step-dispensing">
+            <div class="progress-step-line"></div>
+            <div class="progress-step-circle mx-auto">
+                <i class="fas fa-fill-drip"></i>
+            </div>
+            <p class="mt-2 mb-0">{% if language == "sk" %}Čapovanie{% else %}Dispensing{% endif %}</p>
+        </div>
+        <div class="col-2 text-center progress-step" id="step-pickup">
+            <div class="progress-step-circle mx-auto">
+                <i class="fas fa-hand-holding"></i>
+            </div>
+            <p class="mt-2 mb-0">Pickup</p>
+        </div>
+    </div>
+</div>
+
+<!-- Cart badge/icon in top right corner -->
+<div class="position-fixed top-0 end-0 me-4 mt-3 d-none" id="cart-icon-container">
+    <button class="btn btn-outline-primary" id="view-cart-btn">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="cart-badge" id="cart-count">0</span>
+    </button>
+</div>
+
+<!-- Beverage Type Selection Screen -->
+<div id="beverage-type-selection" class="container">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h2>{% if language == "sk" %}Vyberte si svoj nápoj{% else %}Select Your Beverage{% endif %}</h2>
+            <p class="text-muted">{% if language == "sk" %}Vyberte si druh nápoja{% else %}Choose the type of beverage{% endif %}</p>
+        </div>
+    </div>
+    
+    <div class="row row-cols-1 row-cols-md-3 g-4 mb-4">
+        <div class="col">
+            <div class="card beverage-type-option h-100" data-type="beer">
+                <div class="card-body text-center">
+                    <i class="fas fa-beer fa-4x mb-3 text-warning"></i>
+                    <h3 class="card-title">Šariš 10</h3>
+                    <p class="card-text text-muted">{% if language == "sk" %}Čerstvé vychladené pivo{% else %}Fresh chilled beer{% endif %}</p>
+                    <span class="badge bg-info">{% if language == "sk" %}Alkoholický nápoj{% else %}Alcoholic Beverage{% endif %}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col">
+            <div class="card beverage-type-option h-100" data-type="kofola">
+                <div class="card-body text-center">
+                    <i class="fas fa-mug-hot fa-4x mb-3 text-dark"></i>
+                    <h3 class="card-title">Kofola</h3>
+                    <p class="card-text text-muted">{% if language == "sk" %}Tradičná kofola originál{% else %}Traditional Kofola original{% endif %}</p>
+                    <span class="badge bg-success">{% if language == "sk" %}Nealkoholické{% else %}Non-Alcoholic{% endif %}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col">
+            <div class="card beverage-type-option h-100" data-type="birel">
+                <div class="card-body text-center">
+                    <i class="fas fa-beer-mug-empty fa-4x mb-3 text-warning"></i>
+                    <h3 class="card-title">Birel Pomelo&Grep</h3>
+                    <p class="card-text text-muted">{% if language == "sk" %}Osviežujúci nealkoholický radler{% else %}Refreshing non-alcoholic radler{% endif %}</p>
+                    <span class="badge bg-success">{% if language == "sk" %}Nealkoholické{% else %}Non-Alcoholic{% endif %}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col text-center">
+            <p id="beverage-type-display">{% if language == "sk" %}Vybrané: {% else %}Selected: {% endif %}<span>None</span></p>
+            <button id="continue-type-btn" class="btn btn-primary btn-lg" disabled>
+                {% if language == "sk" %}Pokračuj{% else %}Continue{% endif %} <i class="fas fa-chevron-right ms-2"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Beverage Size and Quantity Selection Screen -->
+<div id="beverage-size-selection" class="container d-none">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h2>{% if language == "sk" %}Vyberte veľkosť a množstvo{% else %}Select Size & Quantity{% endif %}</h2>
+            <p class="text-muted">{% if language == "sk" %}Vyberte si množstvo požadovaného nápoja{% else %}Choose the amount of beverage you want{% endif %}</p>
+        </div>
+    </div>
+    
+    <div class="row row-cols-1 row-cols-md-2 g-4 mb-4 justify-content-center">
+        <div class="col">
+            <div class="card beverage-size-option h-100" data-size="300">
+                <div class="card-body text-center">
+                    <i class="fas fa-glass-water fa-3x mb-3 text-info"></i>
+                    <h3 class="card-title">{% if language == "sk" %}Malé{% else %}Small{% endif %}</h3>
+                    <p class="card-text">300ml</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col">
+            <div class="card beverage-size-option h-100" data-size="500">
+                <div class="card-body text-center">
+                    <i class="fas fa-glass-water fa-4x mb-3 text-info"></i>
+                    <h3 class="card-title">{% if language == "sk" %}Veľké{% else %}Large{% endif %}</h3>
+                    <p class="card-text">500ml</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quantity Selection -->
+    <div class="row mb-4 justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title text-center mb-3">{% if language == "sk" %}Množstvo{% else %}Quantity{% endif %}</h5>
+                    <div class="d-flex justify-content-center align-items-center">
+                        <div class="quantity-selector">
+                            <button class="btn btn-outline-secondary btn-sm dec-quantity">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" class="quantity-input" value="1" min="1" max="10">
+                            <button class="btn btn-outline-secondary btn-sm inc-quantity">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center mt-2">
+                        <button class="btn btn-sm btn-outline-secondary quick-quantity-btn" data-quantity="1">1</button>
+                        <button class="btn btn-sm btn-outline-secondary quick-quantity-btn" data-quantity="2">2</button>
+                        <button class="btn btn-sm btn-outline-secondary quick-quantity-btn" data-quantity="3">3</button>
+                        <button class="btn btn-sm btn-outline-secondary quick-quantity-btn" data-quantity="5">5</button>
+                        <button class="btn btn-sm btn-outline-secondary quick-quantity-btn" data-quantity="10">10</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col text-center">
+            <button id="back-to-type-btn" class="btn btn-outline-secondary btn-lg me-2">
+                <i class="fas fa-chevron-left me-2"></i> {% if language == "sk" %}Späť{% else %}Back{% endif %}
+            </button>
+            <button id="add-to-cart-btn" class="btn btn-success btn-lg" disabled>
+                <i class="fas fa-cart-plus me-2"></i> {% if language == "sk" %}Pridať do košíka{% else %}Add to Cart{% endif %}
+            </button>
+            <button id="view-cart-from-size-btn" class="btn btn-primary btn-lg ms-2 d-none">
+                <i class="fas fa-shopping-cart me-2"></i> {% if language == "sk" %}Zobraziť košík{% else %}View Cart{% endif %}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Shopping Cart Screen -->
+<div id="shopping-cart" class="container d-none">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h2>{% if language == "sk" %}Váš košík{% else %}Your Cart{% endif %}</h2>
+            <p class="text-muted">{% if language == "sk" %}Skontrolujte nápoje pred dokončením{% else %}Review your beverages before checkout{% endif %}</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">{% if language == "sk" %}Položky objednávky{% else %}Order Items{% endif %}</h5>
+                </div>
+                <div class="card-body">
+                    <div id="cart-items-container">
+                        <!-- Cart items will be added here dynamically -->
+                        <div class="text-center py-4 text-muted" id="empty-cart-message">
+                            <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                            <p>{% if language == "sk" %}Váš košík je prázdny{% else %}Your cart is empty{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{% if language == "sk" %}Počet položiek:{% else %}Total Items:{% endif %}</strong> <span id="cart-total-items">0</span>
+                        </div>
+                        <div>
+                            <strong>{% if language == "sk" %}Celková cena:{% else %}Total Price:{% endif %}</strong> <span id="cart-total-price">€0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button id="continue-shopping-btn" class="btn btn-outline-secondary btn-lg me-2">
+                    <i class="fas fa-chevron-left me-2"></i> {% if language == "sk" %}Pokračovať v nákupe{% else %}Continue Shopping{% endif %}
+                </button>
+                <button id="checkout-btn" class="btn btn-primary btn-lg" disabled>
+                    {% if language == "sk" %}Pokračovať k platbe{% else %}Checkout{% endif %} <i class="fas fa-chevron-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Age Verification Screen -->
+<div id="age-verification" class="container d-none">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h2>{% if language == "sk" %}Overenie veku{% else %}Age Verification{% endif %}</h2>
+            <p class="text-muted">{% if language == "sk" %}Pre alkoholické nápoje musíme overiť, že máte 18+{% else %}For alcoholic beverages, we need to verify you are 18+{% endif %}</p>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Verification Methods Selection -->
+            <div id="verification-methods" class="card shadow">
+                <div class="card-body p-4">
+                    <h4 class="card-title text-center mb-4">{% if language == "sk" %}Vyberte spôsob overenia{% else %}Choose Verification Method{% endif %}</h4>
+                    
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        <div class="col">
+                            <div class="card h-100 order-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-camera fa-4x mb-3 text-primary"></i>
+                                    <h5 class="card-title">{% if language == "sk" %}Webcam{% else %}Webcam{% endif %}</h5>
+                                    <p class="card-text text-muted">{% if language == "sk" %}Rýchle overenie pomocou webovej kamery{% else %}Quick verification using webcam{% endif %}</p>
+                                    <button id="webcam-verify-btn" class="btn btn-primary mt-2">{% if language == "sk" %}Použiť kameru{% else %}Use Webcam{% endif %}</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col">
+                            <div class="card h-100 order-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-id-card fa-4x mb-3 text-primary"></i>
+                                    <h5 class="card-title">{% if language == "sk" %}Občiansky preukaz{% else %}ID Card{% endif %}</h5>
+                                    <p class="card-text text-muted">{% if language == "sk" %}Overenie pomocou občianskeho preukazu{% else %}Verify using ID card{% endif %}</p>
+                                    <button id="id-card-verify-btn" class="btn btn-primary mt-2">{% if language == "sk" %}Ukázať preukaz{% else %}Show ID Card{% endif %}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ID Verification Form (mock) -->
+            <form id="verification-form" class="card p-4 shadow needs-validation d-none" novalidate>
+                <h4 class="mb-4 text-center">{% if language == "sk" %}Overiť vek{% else %}Verify Age{% endif %}</h4>
+                
+                <div class="mb-3">
+                    <label for="id-number" class="form-label">{% if language == "sk" %}Číslo občianskeho preukazu{% else %}ID Number{% endif %}</label>
+                    <input type="text" class="form-control" id="id-number" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="birthdate" class="form-label">{% if language == "sk" %}Dátum narodenia{% else %}Date of Birth{% endif %}</label>
+                    <input type="date" class="form-control" id="birthdate" required>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">{% if language == "sk" %}Potvrdiť{% else %}Verify{% endif %}</button>
+                </div>
+            </form>
+            
+            <!-- Webcam Verification UI -->
+            <div id="webcam-verification" class="card p-4 shadow d-none">
+                <h4 class="mb-4 text-center">{% if language == "sk" %}Webcam verifikácia{% else %}Webcam Verification{% endif %}</h4>
+                
+                <div id="webcam-container" class="text-center">
+                    <video id="webcam-video" width="100%" height="auto" playsinline style="border-radius: 10px; background-color: #000;"></video>
+                    <canvas id="webcam-canvas" class="d-none"></canvas>
+                </div>
+                
+                <div id="webcam-controls" class="d-flex justify-content-center mt-3">
+                    <button id="webcam-start-btn" class="btn btn-primary me-2">{% if language == "sk" %}Spustiť kameru{% else %}Start Camera{% endif %}</button>
+                    <button id="webcam-capture-btn" class="btn btn-success me-2" disabled>{% if language == "sk" %}Zachytiť snímku{% else %}Capture Image{% endif %}</button>
+                    <button id="webcam-back-btn" class="btn btn-outline-secondary">{% if language == "sk" %}Späť{% else %}Back{% endif %}</button>
+                </div>
+                
+                <div id="webcam-result" class="mt-3 d-none">
+                    <div class="alert" role="alert">
+                        <h5 id="verification-status" class="mb-0"></h5>
+                        <p id="estimated-age" class="text-muted mt-2 mb-0"></p>
+                    </div>
+                    <div class="d-flex justify-content-center mt-3">
+                        <button id="webcam-proceed-btn" class="btn btn-primary d-none">
+                            {% if language == "sk" %}Pokračovať{% else %}Proceed{% endif %}
+                        </button>
+                        <button id="webcam-retry-btn" class="btn btn-outline-secondary ms-2">
+                            {% if language == "sk" %}Skúsiť znova{% else %}Try Again{% endif %}
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="webcam-loading" class="text-center py-4 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">{% if language == "sk" %}Overovanie...{% else %}Verifying...{% endif %}</p>
+                </div>
+                
+                <div id="webcam-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dispensing Screen -->
+<div id="dispensing-screen" class="container d-none">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h2>{% if language == "sk" %}Prebieha čapovanie{% else %}Dispensing in Progress{% endif %}</h2>
+            <p class="text-muted">{% if language == "sk" %}Pripravujeme váš nápoj...{% else %}Preparing your beverage...{% endif %}</p>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="cup-container">
+                            <div class="cup"></div>
+                            <div class="liquid" id="dispensing-liquid"></div>
+                            <div class="foam" id="dispensing-foam"></div>
+                        </div>
+                    </div>
+                    
+                    <h5 id="dispensing-status" class="text-center mb-3">{% if language == "sk" %}Inicializácia...{% else %}Initializing...{% endif %}</h5>
+                    
+                    <div class="progress mb-4" style="height: 30px;">
+                        <div id="dispensing-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <p class="text-center text-muted">{% if language == "sk" %}Prosím počkajte, kým bude váš nápoj pripravený. Toto môže trvať niekoľko sekúnd.{% else %}Please wait while your beverage is being prepared. This may take a few seconds.{% endif %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Complete Screen -->
+<div id="order-complete-screen" class="container d-none">
+    <div class="row mb-4">
+        <div class="col text-center">
+            <h2>{% if language == "sk" %}Objednávka hotová!{% else %}Order Complete!{% endif %}</h2>
+            <p class="text-muted">{% if language == "sk" %}Váš nápoj je pripravený na odber{% else %}Your beverage is ready for pickup{% endif %}</p>
+        </div>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle text-success fa-5x"></i>
+                    </div>
+                    
+                    <h4 class="mb-3">{% if language == "sk" %}Ďakujeme za váš nákup{% else %}Thank you for your purchase{% endif %}</h4>
+                    
+                    <p class="mb-4">{% if language == "sk" %}Váš nápoj je teraz pripravený v odbernom mieste. Prosím zoberte si ho v priebehu niekoľkých minút.{% else %}Your beverage is now ready at the pickup station. Please collect it within a few minutes.{% endif %}</p>
+                    
+                    <button id="order-complete-continue-btn" class="btn btn-primary btn-lg">
+                        {% if language == "sk" %}Nová objednávka{% else %}New Order{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='customer.js') }}"></script>
+{% endblock %}

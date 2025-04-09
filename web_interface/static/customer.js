@@ -936,12 +936,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const beveragesRequiringVerification = ['beer', 'birel'];
     let beverageRequiringVerification = null;
     
-    // Global variables for retry logic
-    let verificationRetryCount = 0;
-    const MAX_VERIFICATION_RETRIES = 5;
-    let currentVerificationImage = null;
-    
-    function sendImageForVerification(imageDataURL, isRetry = false) {
+    function sendImageForVerification(imageDataURL) {
         // Determine which beverage requires verification
         beverageRequiringVerification = null;
         for (const item of cartItems) {
@@ -955,29 +950,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // No verification needed, proceed to payment
             showScreen('payment-screen');
             return;
-        }
-        
-        // Store the current image for potential retries
-        if (!isRetry) {
-            currentVerificationImage = imageDataURL;
-            verificationRetryCount = 0;
-        }
-        
-        // Update UI to show retries if applicable
-        if (webcamResult && isRetry) {
-            const language = document.documentElement.lang || 'en';
-            webcamResult.innerHTML = `
-                <div class="alert alert-info mb-3">
-                    <h5 class="alert-heading">${language === 'sk' ? 'Prebieha overenie' : 'Verification in Progress'}</h5>
-                    <p class="mb-0">${language === 'sk' ? 
-                        `Opakujem pokus o overenie (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...` : 
-                        `Retrying verification (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...`}</p>
-                    <div class="progress mt-2">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" style="width: 100%"></div>
-                    </div>
-                </div>
-            `;
         }
         
         // Send the image to server for verification
@@ -998,44 +970,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (data.success) {
                     const isVerified = data.verified;
-                    
-                    // If verification failed but we have retries remaining, try again automatically
-                    if (!isVerified && verificationRetryCount < MAX_VERIFICATION_RETRIES) {
-                        verificationRetryCount++;
-                        console.log(`Verification failed. Retrying (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...`);
-                        
-                        // Show retry message
-                        webcamResult.innerHTML = `
-                            <div class="alert alert-warning mb-3">
-                                <h5 class="alert-heading">${language === 'sk' ? 'Overenie zlyhalo' : 'Verification Failed'}</h5>
-                                <p class="mb-0">${language === 'sk' ? 
-                                    `Prebieha automatické opakovanie (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...` : 
-                                    `Automatic retry in progress (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...`}</p>
-                                <div class="progress mt-2">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
-                                         role="progressbar" style="width: 100%"></div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Retry after a short delay
-                        setTimeout(() => {
-                            sendImageForVerification(currentVerificationImage, true);
-                        }, 1000);
-                        return;
-                    }
-                    
-                    // Display final result after all retries or successful verification
                     const message = data.message || (isVerified ? 
                         (language === 'sk' ? 'Overenie veku úspešné!' : 'Age verification successful!') : 
                         (language === 'sk' ? 'Overenie veku zlyhalo. Skúste znova alebo použite iný spôsob overenia.' : 'Age verification failed. Try again or use another verification method.'));
-                    
-                    let retryInfo = '';
-                    if (verificationRetryCount > 0) {
-                        retryInfo = `<p class="text-muted small">${language === 'sk' ? 
-                            `(Úspešne po ${verificationRetryCount} pokusoch)` : 
-                            `(Successful after ${verificationRetryCount} retries)`}</p>`;
-                    }
                     
                     webcamResult.innerHTML = `
                         <div class="alert alert-${isVerified ? 'success' : 'danger'} mb-3">
@@ -1044,7 +981,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 (language === 'sk' ? 'Overenie zlyhalo' : 'Verification Failed')}</h5>
                             <p class="mb-0">${message}</p>
                             ${data.estimated_age ? `<p class="mb-0 mt-2">${language === 'sk' ? 'Odhadovaný vek' : 'Estimated age'}: ${data.estimated_age}</p>` : ''}
-                            ${isVerified ? retryInfo : ''}
                         </div>
                     `;
                     
@@ -1071,7 +1007,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             showScreen('payment-screen');
                         }, 3000);
                     } else {
-                        // All retries exhausted, show manual retry options
                         webcamResult.innerHTML += `
                             <div class="text-center mt-3">
                                 <button id="try-again-btn" class="btn btn-primary">
@@ -1098,33 +1033,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 } else {
-                    // Error in verification process (API returned success: false)
-                    // Try again automatically if we have retries left
-                    if (verificationRetryCount < MAX_VERIFICATION_RETRIES) {
-                        verificationRetryCount++;
-                        console.log(`API error during verification. Retrying (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...`);
-                        
-                        webcamResult.innerHTML = `
-                            <div class="alert alert-warning mb-3">
-                                <h5 class="alert-heading">${language === 'sk' ? 'Chyba API' : 'API Error'}</h5>
-                                <p class="mb-0">${language === 'sk' ? 
-                                    `Prebieha automatické opakovanie (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...` : 
-                                    `Automatic retry in progress (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...`}</p>
-                                <div class="progress mt-2">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
-                                         role="progressbar" style="width: 100%"></div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Retry after a short delay
-                        setTimeout(() => {
-                            sendImageForVerification(currentVerificationImage, true);
-                        }, 1000);
-                        return;
-                    }
-                    
-                    // All retries exhausted, show error
+                    // Error in verification process
                     const errorMessage = data.message || (language === 'sk' ? 
                         'Chyba pri overovaní. Skúste znova.' : 
                         'Error during verification. Please try again.');
@@ -1133,9 +1042,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="alert alert-danger mb-3">
                             <h5 class="alert-heading">${language === 'sk' ? 'Chyba overenia' : 'Verification Error'}</h5>
                             <p class="mb-0">${errorMessage}</p>
-                            <p class="text-muted small mt-2">${language === 'sk' ? 
-                                `Zlyhalo po ${verificationRetryCount} automatických pokusoch.` : 
-                                `Failed after ${verificationRetryCount} automatic retries.`}</p>
                         </div>
                         <div class="text-center mt-3">
                             <button id="try-again-btn" class="btn btn-primary">
@@ -1155,42 +1061,12 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error during verification:', error);
             if (webcamResult) {
                 const language = document.documentElement.lang || 'en';
-                
-                // Network error - try again automatically if we have retries left
-                if (verificationRetryCount < MAX_VERIFICATION_RETRIES) {
-                    verificationRetryCount++;
-                    console.log(`Network error during verification. Retrying (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...`);
-                    
-                    webcamResult.innerHTML = `
-                        <div class="alert alert-warning mb-3">
-                            <h5 class="alert-heading">${language === 'sk' ? 'Chyba siete' : 'Network Error'}</h5>
-                            <p class="mb-0">${language === 'sk' ? 
-                                `Prebieha automatické opakovanie (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...` : 
-                                `Automatic retry in progress (${verificationRetryCount}/${MAX_VERIFICATION_RETRIES})...`}</p>
-                            <div class="progress mt-2">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
-                                     role="progressbar" style="width: 100%"></div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Retry after a slightly longer delay for network errors
-                    setTimeout(() => {
-                        sendImageForVerification(currentVerificationImage, true);
-                    }, 2000);
-                    return;
-                }
-                
-                // All retries exhausted, show network error
                 webcamResult.innerHTML = `
                     <div class="alert alert-danger mb-3">
                         <h5 class="alert-heading">${language === 'sk' ? 'Chyba komunikácie' : 'Communication Error'}</h5>
                         <p class="mb-0">${language === 'sk' ? 
                             'Nepodarilo sa spojiť so serverom. Skontrolujte pripojenie a skúste znova.' : 
                             'Failed to connect to server. Check your connection and try again.'}</p>
-                        <p class="text-muted small mt-2">${language === 'sk' ? 
-                            `Zlyhalo po ${verificationRetryCount} automatických pokusoch.` : 
-                            `Failed after ${verificationRetryCount} automatic retries.`}</p>
                     </div>
                     <div class="text-center mt-3">
                         <button id="try-again-btn" class="btn btn-primary">

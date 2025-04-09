@@ -74,19 +74,9 @@ class MainController:
             logger.error(f"System initialization error: {e}")
             return False
     
-    def get_current_state(self):
-        """
-        Get the current state name of the system.
-        
-        Returns:
-            str: Current state name
-        """
-        with self.state_lock:
-            return self.current_state
-    
     def get_system_state(self):
         """
-        Get the current state of the system with detailed information.
+        Get the current state of the system.
         
         Returns:
             dict: Current state information
@@ -279,45 +269,6 @@ class MainController:
             self._set_state(SYSTEM_STATES['IDLE'])
             return True
     
-    def reset_system(self):
-        """
-        Reset the system to an idle state.
-        
-        Returns:
-            bool: True if reset was successful, False otherwise
-        """
-        try:
-            logger.info("System reset initiated")
-            
-            # Stop any ongoing operations
-            self.stop_operation()
-            
-            # Reset error state if applicable
-            if self.current_state == SYSTEM_STATES['ERROR']:
-                self._set_state(SYSTEM_STATES['IDLE'])
-                
-            # Reset statistics
-            with self.stats_lock:
-                self.stats['errors'] = 0
-                # Avoid setting None to numeric fields
-                if 'last_error' in self.stats:
-                    self.stats.pop('last_error', None)
-                if 'last_error_time' in self.stats:
-                    self.stats.pop('last_error_time', None)
-                
-            # Clear error history if the method exists
-            if hasattr(self.error_handler, 'clear_error_history'):
-                self.error_handler.clear_error_history()
-            # Alternative approach if method doesn't exist
-            elif hasattr(self.error_handler, 'error_history'):
-                self.error_handler.error_history = []
-            
-            logger.info("System reset complete")
-            return True
-        except Exception as e:
-            logger.error(f"Error during system reset: {e}")
-            return False
-            
     def shutdown(self):
         """
         Properly shut down all system components.

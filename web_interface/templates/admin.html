@@ -218,6 +218,31 @@
                 </div>
             </div>
         </div>
+            </div>\
+        </div>\
+    </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">System Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Version:</strong> 1.0.0</p>
+                            <p><strong>Release Date:</strong> April 9, 2025</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Environment:</strong> {{ 'Production' if request.host != '0.0.0.0:5000' else 'Development' }}</p>
+                            <p><strong>Server Time:</strong> <span id="server-time">{{ now }}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
