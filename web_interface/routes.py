@@ -52,7 +52,7 @@ def admin():
     
     if _controller:
         # Get real system state if controller is available
-        state['state'] = _controller.get_current_state().lower()
+        state['state'] = _controller.get_system_state().lower()
         
         # Get statistics
         with _controller.stats_lock:
