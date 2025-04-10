@@ -255,6 +255,25 @@ def customer():
     return render_template('customer.html', language=language)
 
 
+@app.route('/customer/simple')
+def customer_simple():
+    """Simplified customer interface for testing purposes."""
+    # Get language preference
+    language = request.args.get('language', session.get('language', DEFAULT_LANGUAGE))
+    
+    # Check if it's a valid language
+    if language not in LANGUAGES:
+        language = DEFAULT_LANGUAGE
+    
+    # Store in session
+    session['language'] = language
+    
+    logger.info(f"Rendering simplified customer interface with language: {language}")
+    
+    # Render simplified template with language context
+    return render_template('customer_simple.html', language=language)
+
+
 @app.route('/api/state')
 def get_state():
     """Get the current state for the UI."""
