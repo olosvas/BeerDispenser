@@ -165,10 +165,15 @@
 
 {% block content %}
 <div class="container py-4">
-    <!-- Direct selection highlighting -->
+    <!-- Direct selection highlighting and cart functionality -->
     <script>
-        // Inline script for highlighting selections
+        // Inline script for beverage selection and cart functionality
         document.addEventListener('DOMContentLoaded', function() {
+            // Global variables
+            let selectedBeverage = '';
+            let selectedSize = 0;
+            let cartItems = [];
+            
             // Create and add global style for selection indicators
             const style = document.createElement('style');
             style.textContent = `
@@ -186,10 +191,135 @@
             `;
             document.head.appendChild(style);
             
+            // Helper functions
+            function getBeverageName(type) {
+                switch(type) {
+                    case 'beer': return document.querySelector('[data-type="beer"] h4').textContent;
+                    case 'kofola': return 'Kofola';
+                    case 'birel': return 'Birel';
+                    default: return type;
+                }
+            }
+            
+            function getBeveragePrice(type, size) {
+                const prices = {
+                    beer: { '300': 2.50, '500': 3.50 },
+                    kofola: { '300': 1.80, '500': 2.80 },
+                    birel: { '300': 2.30, '500': 3.30 }
+                };
+                
+                return prices[type] && prices[type][size] ? prices[type][size] : 0;
+            }
+            
+            function updateCartDisplay() {
+                const cartItemsContainer = document.getElementById('cart-items-container');
+                const emptyCartMessage = document.getElementById('empty-cart-message');
+                const cartTotalItems = document.getElementById('cart-total-items');
+                const cartTotalPrice = document.getElementById('cart-total-price');
+                const checkoutBtn = document.getElementById('checkout-btn');
+                
+                if (!cartItemsContainer) return;
+                
+                // Clear existing items
+                const childrenToRemove = [];
+                for (let i = 0; i < cartItemsContainer.children.length; i++) {
+                    const child = cartItemsContainer.children[i];
+                    if (child !== emptyCartMessage) {
+                        childrenToRemove.push(child);
+                    }
+                }
+                childrenToRemove.forEach(child => cartItemsContainer.removeChild(child));
+                
+                // Show/hide empty cart message and buttons
+                if (cartItems.length === 0) {
+                    if (emptyCartMessage) emptyCartMessage.classList.remove('d-none');
+                    if (checkoutBtn) checkoutBtn.disabled = true;
+                } else {
+                    if (emptyCartMessage) emptyCartMessage.classList.add('d-none');
+                    if (checkoutBtn) checkoutBtn.disabled = false;
+                    
+                    // Add items to cart display
+                    let totalPrice = 0;
+                    
+                    cartItems.forEach((item, index) => {
+                        const itemPrice = getBeveragePrice(item.beverage, item.size);
+                        totalPrice += itemPrice * item.quantity;
+                        
+                        const itemElement = document.createElement('div');
+                        itemElement.className = 'cart-item d-flex justify-content-between align-items-center py-2 border-bottom';
+                        itemElement.innerHTML = `
+                            <div>
+                                <h5 class="mb-0">${getBeverageName(item.beverage)}</h5>
+                                <small class="text-muted">${item.size}ml</small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="me-3">×${item.quantity}</span>
+                                <span class="fw-bold">€${(itemPrice * item.quantity).toFixed(2)}</span>
+                                <button class="btn btn-sm btn-outline-danger ms-2 remove-item" data-index="${index}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        
+                        cartItemsContainer.insertBefore(itemElement, emptyCartMessage);
+                        
+                        // Add event listener to remove button
+                        const removeBtn = itemElement.querySelector('.remove-item');
+                        if (removeBtn) {
+                            removeBtn.addEventListener('click', function() {
+                                const idx = parseInt(this.getAttribute('data-index'), 10);
+                                cartItems.splice(idx, 1);
+                                updateCartCount();
+                                updateCartDisplay();
+                            });
+                        }
+                    });
+                    
+                    // Update totals
+                    if (cartTotalItems) cartTotalItems.textContent = cartItems.length;
+                    if (cartTotalPrice) cartTotalPrice.textContent = '€' + totalPrice.toFixed(2);
+                }
+            }
+            
+            function updateCartCount() {
+                const cartCount = document.getElementById('cart-count');
+                const cartIconContainer = document.getElementById('cart-icon-container');
+                
+                if (cartCount) {
+                    cartCount.textContent = cartItems.length;
+                }
+                
+                if (cartIconContainer) {
+                    if (cartItems.length > 0) {
+                        cartIconContainer.classList.remove('d-none');
+                    } else {
+                        cartIconContainer.classList.add('d-none');
+                    }
+                }
+            }
+            
+            function hideAllScreens() {
+                const screens = ['beverage-type-selection', 'beverage-size-selection', 'shopping-cart', 'age-verification'];
+                screens.forEach(screen => {
+                    const element = document.getElementById(screen);
+                    if (element) element.classList.add('d-none');
+                });
+            }
+            
+            function showScreen(screenId) {
+                hideAllScreens();
+                const screen = document.getElementById(screenId);
+                if (screen) screen.classList.remove('d-none');
+            }
+            
             // Add event listeners to beverage types
             document.querySelectorAll('.beverage-type-option').forEach(card => {
                 card.style.position = 'relative';
                 card.addEventListener('click', function() {
+                    // Get the selected type
+                    selectedBeverage = this.getAttribute('data-type');
+                    console.log("Selected beverage:", selectedBeverage);
+                    
                     // Clear previous selections
                     document.querySelectorAll('.beverage-type-option .active-selection-indicator').forEach(el => el.remove());
                     
@@ -198,6 +328,9 @@
                     indicator.className = 'active-selection-indicator';
                     indicator.textContent = '✓ Selected';
                     this.appendChild(indicator);
+                    
+                    // Enable continue button
+                    document.getElementById('continue-type-btn').disabled = false;
                 });
             });
             
@@ -205,6 +338,10 @@
             document.querySelectorAll('.beverage-size-option').forEach(card => {
                 card.style.position = 'relative';
                 card.addEventListener('click', function() {
+                    // Get the selected size
+                    selectedSize = this.getAttribute('data-size');
+                    console.log("Selected size:", selectedSize);
+                    
                     // Clear previous selections
                     document.querySelectorAll('.beverage-size-option .active-selection-indicator').forEach(el => el.remove());
                     
@@ -213,7 +350,82 @@
                     indicator.className = 'active-selection-indicator';
                     indicator.textContent = '✓ Selected';
                     this.appendChild(indicator);
+                    
+                    // Enable add to cart button
+                    document.getElementById('add-to-cart-btn').disabled = false;
                 });
+            });
+            
+            // Continue Type Button
+            document.getElementById('continue-type-btn').addEventListener('click', function() {
+                showScreen('beverage-size-selection');
+                
+                // Update beverage type display
+                const beverageTypeDisplay = document.getElementById('beverage-type-display');
+                if (beverageTypeDisplay) {
+                    beverageTypeDisplay.textContent = getBeverageName(selectedBeverage);
+                }
+            });
+            
+            // Back to Type Button
+            document.getElementById('back-to-type-btn').addEventListener('click', function() {
+                showScreen('beverage-type-selection');
+            });
+            
+            // Add to Cart Button
+            document.getElementById('add-to-cart-btn').addEventListener('click', function() {
+                // Add item to cart
+                cartItems.push({
+                    beverage: selectedBeverage,
+                    size: selectedSize,
+                    quantity: 1
+                });
+                
+                // Update cart UI
+                updateCartCount();
+                
+                // Show view cart button
+                document.getElementById('view-cart-from-size-btn').classList.remove('d-none');
+                
+                // Reset selection
+                document.querySelectorAll('.beverage-size-option .active-selection-indicator').forEach(el => el.remove());
+                document.getElementById('add-to-cart-btn').disabled = true;
+                selectedSize = '';
+                
+                // Show success message
+                alert('Added to cart: ' + getBeverageName(selectedBeverage) + ' (' + selectedSize + 'ml)');
+            });
+            
+            // View Cart Button
+            document.getElementById('view-cart-btn').addEventListener('click', function() {
+                showScreen('shopping-cart');
+                updateCartDisplay();
+            });
+            
+            // View Cart From Size Button
+            document.getElementById('view-cart-from-size-btn').addEventListener('click', function() {
+                showScreen('shopping-cart');
+                updateCartDisplay();
+            });
+            
+            // Continue Shopping Button
+            document.getElementById('continue-shopping-btn').addEventListener('click', function() {
+                showScreen('beverage-type-selection');
+            });
+            
+            // Checkout Button
+            document.getElementById('checkout-btn').addEventListener('click', function() {
+                // Check if we need age verification
+                const needsVerification = cartItems.some(item => 
+                    item.beverage === 'beer' || item.beverage === 'birel'
+                );
+                
+                if (needsVerification) {
+                    showScreen('age-verification');
+                } else {
+                    // Skip to payment (not implemented in this demo)
+                    alert('Proceeding to payment (skipping age verification for non-alcoholic beverages)');
+                }
             });
         });
     </script>
