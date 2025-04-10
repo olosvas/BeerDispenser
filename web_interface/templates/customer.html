@@ -188,6 +188,13 @@
                     border-radius: 15px;
                     z-index: 1000;
                 }
+                
+                .card.beverage-type-option.selected,
+                .card.beverage-size-option.selected {
+                    border: 3px solid #0d6efd !important;
+                    background-color: rgba(13, 110, 253, 0.1) !important;
+                    box-shadow: 0 0 10px rgba(13, 110, 253, 0.5);
+                }
             `;
             document.head.appendChild(style);
             
@@ -321,7 +328,14 @@
                     console.log("Selected beverage:", selectedBeverage);
                     
                     // Clear previous selections
-                    document.querySelectorAll('.beverage-type-option .active-selection-indicator').forEach(el => el.remove());
+                    document.querySelectorAll('.beverage-type-option').forEach(card => {
+                        card.classList.remove('selected');
+                        const existingIndicator = card.querySelector('.active-selection-indicator');
+                        if (existingIndicator) existingIndicator.remove();
+                    });
+                    
+                    // Add selected class to this card
+                    this.classList.add('selected');
                     
                     // Add indicator to this card
                     const indicator = document.createElement('div');
@@ -343,7 +357,14 @@
                     console.log("Selected size:", selectedSize);
                     
                     // Clear previous selections
-                    document.querySelectorAll('.beverage-size-option .active-selection-indicator').forEach(el => el.remove());
+                    document.querySelectorAll('.beverage-size-option').forEach(card => {
+                        card.classList.remove('selected');
+                        const existingIndicator = card.querySelector('.active-selection-indicator');
+                        if (existingIndicator) existingIndicator.remove();
+                    });
+                    
+                    // Add selected class to this card
+                    this.classList.add('selected');
                     
                     // Add indicator to this card
                     const indicator = document.createElement('div');
@@ -372,13 +393,41 @@
                 showScreen('beverage-type-selection');
             });
             
+            // Quantity controls
+            let currentQuantity = 1;
+            
+            // Initialize quantity input
+            document.querySelector('.quantity-input').value = currentQuantity;
+            
+            // Decrease quantity button
+            document.querySelector('.dec-quantity').addEventListener('click', function() {
+                if (currentQuantity > 1) {
+                    currentQuantity--;
+                    document.querySelector('.quantity-input').value = currentQuantity;
+                }
+            });
+            
+            // Increase quantity button
+            document.querySelector('.inc-quantity').addEventListener('click', function() {
+                currentQuantity++;
+                document.querySelector('.quantity-input').value = currentQuantity;
+            });
+            
+            // Quick quantity buttons
+            document.querySelectorAll('.quick-quantity-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    currentQuantity = parseInt(this.getAttribute('data-quantity'), 10);
+                    document.querySelector('.quantity-input').value = currentQuantity;
+                });
+            });
+            
             // Add to Cart Button
             document.getElementById('add-to-cart-btn').addEventListener('click', function() {
                 // Add item to cart
                 cartItems.push({
                     beverage: selectedBeverage,
                     size: selectedSize,
-                    quantity: 1
+                    quantity: currentQuantity
                 });
                 
                 // Update cart UI
@@ -388,12 +437,21 @@
                 document.getElementById('view-cart-from-size-btn').classList.remove('d-none');
                 
                 // Reset selection
-                document.querySelectorAll('.beverage-size-option .active-selection-indicator').forEach(el => el.remove());
+                document.querySelectorAll('.beverage-size-option').forEach(card => {
+                    card.classList.remove('selected');
+                    const existingIndicator = card.querySelector('.active-selection-indicator');
+                    if (existingIndicator) existingIndicator.remove();
+                });
+                
                 document.getElementById('add-to-cart-btn').disabled = true;
                 selectedSize = '';
                 
+                // Reset quantity to 1
+                currentQuantity = 1;
+                document.querySelector('.quantity-input').value = currentQuantity;
+                
                 // Show success message
-                alert('Added to cart: ' + getBeverageName(selectedBeverage) + ' (' + selectedSize + 'ml)');
+                alert('Added ' + currentQuantity + ' x ' + getBeverageName(selectedBeverage) + ' (' + selectedSize + 'ml) to cart');
             });
             
             // View Cart Button
