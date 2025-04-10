@@ -85,14 +85,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function selectBeverage(type) {
+        console.log("Selected beverage:", type);
         selectedBeverage = type;
         
         // Update UI - highlight selected option
         beverageTypeOptions.forEach(option => {
             if (option.getAttribute('data-type') === type) {
                 option.classList.add('selected');
+                // New approach - add the selected-beverage class 
+                option.classList.add('selected-beverage'); 
+                
+                // Add badge if it doesn't exist
+                if (!option.querySelector('.selected-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'selected-badge';
+                    badge.textContent = '✓ Selected';
+                    option.appendChild(badge);
+                }
             } else {
                 option.classList.remove('selected');
+                option.classList.remove('selected-beverage');
+                
+                // Remove badge if it exists
+                const badge = option.querySelector('.selected-badge');
+                if (badge) {
+                    option.removeChild(badge);
+                }
             }
         });
         
@@ -109,14 +127,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function selectSize(size) {
+        console.log("Selected size:", size);
         selectedSize = size;
         
         // Update UI - highlight selected option
         beverageSizeOptions.forEach(option => {
             if (parseInt(option.getAttribute('data-size'), 10) === size) {
                 option.classList.add('selected');
+                // New approach - add the selected-size class 
+                option.classList.add('selected-size');
+                
+                // Add badge if it doesn't exist
+                if (!option.querySelector('.selected-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'selected-badge';
+                    badge.textContent = '✓ Selected';
+                    option.appendChild(badge);
+                }
             } else {
                 option.classList.remove('selected');
+                option.classList.remove('selected-size');
+                
+                // Remove badge if it exists
+                const badge = option.querySelector('.selected-badge');
+                if (badge) {
+                    option.removeChild(badge);
+                }
             }
         });
         
