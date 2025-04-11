@@ -18,6 +18,23 @@
         transform: translateY(-5px);
     }
     
+    .beverage-type-option.selected, .beverage-size-option.selected {
+        border: 3px solid #0d6efd;
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    
+    .active-selection-indicator {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: #0d6efd;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
     /* Selected item styles */
     .selected-beverage {
         border: 3px solid #0d6efd !important;
