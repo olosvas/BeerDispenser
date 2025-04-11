@@ -703,20 +703,28 @@ def api_verify_age():
     if _controller is None:
         return jsonify({"error": "System not available"}), 503
     
-    # Get JSON data from request
-    data = request.get_json()
-    if not data:
-        return jsonify({"success": False, "message": "No data provided"}), 400
-    
-    beverage_type = data.get('beverage_type', 'beer')
-    
-    logger.debug(f"Received verification request for beverage type: {beverage_type}")
+    # Check if request is form data or JSON
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        # Process form data
+        method = request.form.get('method', 'webcam')
+        beverage_type = request.form.get('beverage_type', 'beer')
+        image_data_url = request.form.get('image_data')
+        
+        logger.debug(f"Received form verification request for beverage type: {beverage_type}")
+    else:
+        # Get JSON data from request
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "No data provided"}), 400
+        
+        method = data.get('method', 'webcam')
+        beverage_type = data.get('beverage_type', 'beer')
+        image_data_url = data.get('image_data')
+        
+        logger.debug(f"Received JSON verification request for beverage type: {beverage_type}")
     
     from age_verification.age_detector import verify_age_for_beverage, detect_age_from_image
     import base64
-    
-    # Extract image and beverage type from JSON
-    image_data_url = data.get('image_data')
     
     if not image_data_url:
         return jsonify({"success": False, "message": "No image provided"}), 400

@@ -488,6 +488,159 @@
                 showScreen('beverage-type-selection');
             });
             
+            // Webcam buttons event listeners
+            document.getElementById('webcam-verify-btn').addEventListener('click', function() {
+                document.getElementById('verification-methods').classList.add('d-none');
+                document.getElementById('webcam-verification').classList.remove('d-none');
+            });
+            
+            document.getElementById('webcam-back-btn').addEventListener('click', function() {
+                document.getElementById('verification-methods').classList.remove('d-none');
+                document.getElementById('webcam-verification').classList.add('d-none');
+                // Stop webcam if it's running
+                const video = document.getElementById('webcam-video');
+                if (video.srcObject) {
+                    const tracks = video.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                    video.srcObject = null;
+                }
+            });
+            
+            // Implement webcam functionality
+            document.getElementById('webcam-start-btn').addEventListener('click', function() {
+                startWebcam();
+            });
+            
+            document.getElementById('webcam-capture-btn').addEventListener('click', function() {
+                captureWebcamImage();
+            });
+            
+            function startWebcam() {
+                const video = document.getElementById('webcam-video');
+                const startBtn = document.getElementById('webcam-start-btn');
+                const captureBtn = document.getElementById('webcam-capture-btn');
+                const errorElement = document.getElementById('webcam-error');
+                
+                // Hide any previous errors
+                errorElement.classList.add('d-none');
+                
+                // Request access to the webcam
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(stream) {
+                        video.srcObject = stream;
+                        startBtn.classList.add('d-none');
+                        captureBtn.classList.remove('d-none');
+                    })
+                    .catch(function(err) {
+                        console.error("Error accessing webcam:", err);
+                        errorElement.textContent = "Failed to access webcam: " + err.message;
+                        errorElement.classList.remove('d-none');
+                    });
+            }
+            
+            function captureWebcamImage() {
+                const video = document.getElementById('webcam-video');
+                const canvas = document.getElementById('webcam-canvas');
+                const captureBtn = document.getElementById('webcam-capture-btn');
+                const loadingElement = document.getElementById('webcam-loading');
+                const errorElement = document.getElementById('webcam-error');
+                
+                // Set canvas dimensions to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Draw the current video frame on the canvas
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert canvas to data URL (base64 encoded image)
+                const imageDataURL = canvas.toDataURL('image/jpeg');
+                
+                // Stop the webcam stream
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+                
+                // Show loading indicator
+                loadingElement.classList.remove('d-none');
+                captureBtn.classList.add('d-none');
+                
+                // Get the alcoholic beverage type for verification context
+                const alcoholicBeverage = cartItems.find(item => 
+                    item.beverage === 'beer' || item.beverage === 'birel'
+                );
+                
+                // Send the image for verification
+                const formData = new FormData();
+                formData.append('method', 'webcam');
+                formData.append('image_data', imageDataURL);
+                formData.append('beverage_type', alcoholicBeverage ? alcoholicBeverage.beverage : 'beer');
+                
+                fetch('/api/verify_age', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading indicator
+                    loadingElement.classList.add('d-none');
+                    
+                    // Show result
+                    const resultElement = document.getElementById('webcam-result');
+                    resultElement.classList.remove('d-none');
+                    
+                    if (data.success && data.verified) {
+                        // Age verification successful
+                        resultElement.innerHTML = `
+                            <div class="alert alert-success">
+                                <h4 class="alert-heading"><i class="fas fa-check-circle me-2"></i> ${language === 'sk' ? 'Overenie úspešné' : 'Verification Successful'}</h4>
+                                <p>${data.message}</p>
+                                <hr>
+                                <p class="mb-0">${language === 'sk' ? 'Pokračujeme k platbe' : 'Proceeding to payment'}</p>
+                            </div>
+                            <div class="text-center mt-3">
+                                <button class="btn btn-primary btn-lg proceed-to-payment-btn">
+                                    <i class="fas fa-credit-card me-2"></i> ${language === 'sk' ? 'Pokračovať k platbe' : 'Proceed to Payment'}
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Add event listener to the payment button
+                        resultElement.querySelector('.proceed-to-payment-btn').addEventListener('click', function() {
+                            alert(language === 'sk' ? 'Pokračujeme k platbe' : 'Proceeding to payment');
+                        });
+                        
+                    } else {
+                        // Age verification failed
+                        resultElement.innerHTML = `
+                            <div class="alert alert-danger">
+                                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i> ${language === 'sk' ? 'Overenie zlyhalo' : 'Verification Failed'}</h4>
+                                <p>${data.message || (language === 'sk' ? 'Nepodarilo sa overiť váš vek.' : 'Failed to verify your age.')}</p>
+                                <hr>
+                                <p class="mb-0">${language === 'sk' ? 'Skúste prosím iný spôsob overenia.' : 'Please try another verification method.'}</p>
+                            </div>
+                            <div class="text-center mt-3">
+                                <button class="btn btn-secondary btn-lg try-again-btn">
+                                    <i class="fas fa-redo me-2"></i> ${language === 'sk' ? 'Skúsiť znova' : 'Try Again'}
+                                </button>
+                            </div>
+                        `;
+                        
+                        // Add event listener to the try again button
+                        resultElement.querySelector('.try-again-btn').addEventListener('click', function() {
+                            resultElement.classList.add('d-none');
+                            document.getElementById('verification-methods').classList.remove('d-none');
+                        });
+                    }
+                })
+                .catch(error => {
+                    // Hide loading indicator and show error
+                    loadingElement.classList.add('d-none');
+                    errorElement.textContent = error.message || (language === 'sk' ? 'Chyba pri spracovaní požiadavky.' : 'Error processing request.');
+                    errorElement.classList.remove('d-none');
+                });
+            }
+            
             // Checkout Button
             document.getElementById('checkout-btn').addEventListener('click', function() {
                 // Check if we need age verification
