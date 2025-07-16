@@ -23,6 +23,7 @@ Automated IoT-enabled beverage dispensing system with AI-powered age verificatio
 - Mock hardware simulation for development
 
 ## Recent Changes
+- **July 16, 2025:** Working on production version 5dcf7b66-5269-4c09-8918-de0a505d8e4c for Raspberry Pi kiosk deployment
 - **July 16, 2025:** Added kiosk mode support for Raspberry Pi fullscreen deployment
 - **April 9, 2025:** Released stable version 1.0.0 with complete age verification and cart functionality
 
@@ -37,3 +38,4 @@ Automated IoT-enabled beverage dispensing system with AI-powered age verificatio
 - Deployment target: Raspberry Pi 4B
 - Display mode: Fullscreen kiosk mode preferred
 - Development approach: Production-ready implementations
+- Production version: 5dcf7b66-5269-4c09-8918-de0a505d8e4c (main working version)
