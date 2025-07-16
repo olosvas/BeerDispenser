@@ -6,7 +6,31 @@ Kompletný návod na nasadenie čapovacieho systému v kiosk móde pre produkčn
 
 ## Rýchle spustenie
 
+### Pre špecifickú verziu (5dcf7b66-5269-4c09-8918-de0a505d8e4c)
+
 1. **Nainštalujte závislosti na Raspberry Pi:**
+   ```bash
+   ./install_kiosk_dependencies.sh
+   ```
+
+2. **Otestujte dostupnosť špecifickej verzie:**
+   ```bash
+   ./test_deployment_url.sh
+   ```
+
+3. **Spustite kiosk mód pre špecifickú verziu:**
+   ```bash
+   ./specific_version_kiosk.sh
+   ```
+
+4. **Nastavte automatické spustenie:**
+   ```bash
+   ./setup_specific_version_kiosk.sh
+   ```
+
+### Pre aktuálnu produkčnú verziu
+
+1. **Nainštalujte závislosti:**
    ```bash
    ./install_kiosk_dependencies.sh
    ```

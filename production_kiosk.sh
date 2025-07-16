@@ -3,22 +3,28 @@
 # Production Kiosk Mode - pripravené pre nasadenú verziu na Raspberry Pi
 # Verzia: 1.0.0 (April 9, 2025)
 
-# Nastavenie pre produkčnú verziu
-# Automatická detekcia Replit deployment URL
-if [ -n "$REPLIT_DEPLOYMENT" ] && [ -n "$REPLIT_DOMAINS" ]; then
-    # Použitie prvej domény z REPLIT_DOMAINS
+# Nastavenie pre špecifickú produkčnú verziu
+DEPLOYMENT_ID="5dcf7b66-5269-4c09-8918-de0a505d8e4c"
+SPECIFIC_PRODUCTION_URL="https://${DEPLOYMENT_ID}.replit.app"
+
+# Kontrola či je špecifická verzia dostupná
+if curl -s --connect-timeout 10 "$SPECIFIC_PRODUCTION_URL/customer" > /dev/null 2>&1; then
+    echo "Spúšťam kiosk mód pre špecifickú produkčnú verziu: $DEPLOYMENT_ID"
+    APP_URL="$SPECIFIC_PRODUCTION_URL"
+elif [ -n "$REPLIT_DEPLOYMENT" ] && [ -n "$REPLIT_DOMAINS" ]; then
+    # Fallback na aktuálnu deployment verziu
     PRODUCTION_URL="https://$(echo $REPLIT_DOMAINS | cut -d',' -f1)"
-    echo "Spúšťam kiosk mód pre produkčnú verziu na: $PRODUCTION_URL"
+    echo "Špecifická verzia nedostupná, používam aktuálnu: $PRODUCTION_URL"
     APP_URL="$PRODUCTION_URL"
 elif [ -n "$REPLIT_DEV_DOMAIN" ]; then
-    # Použitie dev domény
+    # Fallback na dev verziu
     PRODUCTION_URL="https://$REPLIT_DEV_DOMAIN"
-    echo "Spúšťam kiosk mód pre dev verziu na: $PRODUCTION_URL"
+    echo "Špecifická verzia nedostupná, používam dev verziu: $PRODUCTION_URL"
     APP_URL="$PRODUCTION_URL"
 else
-    # Lokálna verzia
+    # Lokálna verzia ako posledná možnosť
     LOCAL_URL="http://localhost:5000"
-    echo "Spúšťam kiosk mód pre lokálnu verziu..."
+    echo "Produkčné verzie nedostupné, spúšťam lokálnu verziu..."
     APP_URL="$LOCAL_URL"
 fi
 
@@ -33,10 +39,10 @@ export DISPLAY=:0
 # Zastavenie existujúcich chromium procesov
 pkill -f chromium-browser
 
-# Pre produkčnú verziu nepotrebujeme spúšťať Flask lokálne
-if [ "$APP_URL" = "$LOCAL_URL" ]; then
-    # Kontrola či Flask beží lokálne
-    if curl -s $LOCAL_URL > /dev/null; then
+# Spracovanie rôznych typov URL
+if [[ "$APP_URL" == *"localhost"* ]]; then
+    # Lokálna verzia - spustenie Flask ak nie je spustený
+    if curl -s "$APP_URL" > /dev/null; then
         echo "Lokálna Flask aplikácia už beží"
     else
         echo "Spúšťam lokálnu Flask aplikáciu..."
@@ -44,19 +50,22 @@ if [ "$APP_URL" = "$LOCAL_URL" ]; then
         FLASK_PID=$!
         sleep 5
         
-        if ! curl -s $LOCAL_URL > /dev/null; then
+        if ! curl -s "$APP_URL" > /dev/null; then
             echo "Chyba: Flask aplikácia sa nepodarila spustiť"
             exit 1
         fi
         echo "Flask aplikácia úspešne spustená"
     fi
 else
+    # Produkčná verzia - overenie dostupnosti
     echo "Používam produkčnú verziu na: $APP_URL"
-    # Kontrola dostupnosti produkčnej verzie
-    if ! curl -s "$APP_URL/customer" > /dev/null; then
+    if ! curl -s --connect-timeout 15 "$APP_URL/customer" > /dev/null; then
         echo "Chyba: Produkčná verzia nie je dostupná na $APP_URL"
+        echo "Skúšam načítať stránku..."
+        curl -v --connect-timeout 15 "$APP_URL/customer" || true
         exit 1
     fi
+    echo "Produkčná verzia je dostupná a funkčná"
 fi
 
 # Spustenie Chromium v kiosk móde
