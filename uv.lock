@@ -733,7 +733,6 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "requests" },
     { name = "rpi-gpio" },
-    { name = "sqlalchemy" },
 ]
 
 [package.metadata]
@@ -752,7 +751,6 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "rpi-gpio", specifier = ">=0.7.1" },
-    { name = "sqlalchemy", specifier = ">=2.0.39" },
 ]
 
 [[package]]
