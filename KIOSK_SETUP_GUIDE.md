@@ -2,14 +2,33 @@
 
 Tento návod vám pomôže nastaviť aplikáciu čapovacieho systému na Raspberry Pi 4B tak, aby bežala v celoobrazovkovom kiosk móde namiesto v bežnom prehliadači.
 
-## Rýchle spustenie
+## Pre produkčnú verziu (odporúčané)
+
+**Ak máte nasadenú verziu na Replit:**
 
 1. **Nainštalujte závislosti:**
    ```bash
    ./install_kiosk_dependencies.sh
    ```
 
-2. **Spustite kiosk mód manuálne:**
+2. **Spustite produkčný kiosk mód:**
+   ```bash
+   ./production_kiosk.sh
+   ```
+
+3. **Nastavte automatické spustenie:**
+   ```bash
+   ./setup_production_kiosk.sh
+   ```
+
+## Pre lokálnu verziu
+
+1. **Nainštalujte závislosti:**
+   ```bash
+   ./install_kiosk_dependencies.sh
+   ```
+
+2. **Spustite lokálny kiosk mód:**
    ```bash
    ./start_kiosk.sh
    ```
@@ -31,16 +50,32 @@ Pre automatické spustenie po štarte Raspberry Pi:
 
 ## Ovládanie kiosk módu
 
-### Manuálne spustenie/zastavenie
+### Produkčná verzia
 ```bash
-# Spustenie
-./start_kiosk.sh
+# Manuálne spustenie
+./production_kiosk.sh
 
-# Zastavenie (Ctrl+C v terminále)
+# Spustenie služby
+sudo systemctl start beer-dispenser-prod-kiosk.service
+
+# Zastavenie služby
+sudo systemctl stop beer-dispenser-prod-kiosk.service
+
+# Stav služby
+sudo systemctl status beer-dispenser-prod-kiosk.service
+
+# Logy služby
+sudo journalctl -u beer-dispenser-prod-kiosk.service -f
+
+# Vypnutie automatického spustenia
+sudo systemctl disable beer-dispenser-prod-kiosk.service
 ```
 
-### Systemd služba
+### Lokálna verzia
 ```bash
+# Manuálne spustenie
+./start_kiosk.sh
+
 # Spustenie služby
 sudo systemctl start beer-dispenser-kiosk.service
 
@@ -49,9 +84,6 @@ sudo systemctl stop beer-dispenser-kiosk.service
 
 # Stav služby
 sudo systemctl status beer-dispenser-kiosk.service
-
-# Vypnutie automatického spustenia
-sudo systemctl disable beer-dispenser-kiosk.service
 ```
 
 ## Požiadavky na systém
@@ -100,9 +132,14 @@ sudo systemctl restart beer-dispenser-kiosk.service
 
 ## Súbory
 
-- `start_kiosk.sh` - Hlavný skript pre spustenie kiosk módu
+### Produkčná verzia
+- `production_kiosk.sh` - Hlavný skript pre produkčný kiosk mód
+- `setup_production_kiosk.sh` - Nastavenie automatického spustenia produkčnej verzie
 - `install_kiosk_dependencies.sh` - Inštalácia závislostí
-- `setup_autostart.sh` - Nastavenie automatického spustenia
+
+### Lokálna verzia
+- `start_kiosk.sh` - Hlavný skript pre lokálny kiosk mód
+- `setup_autostart.sh` - Nastavenie automatického spustenia lokálnej verzie
 - `hide_cursor.sh` - Skrytie kurzora myši
 
 ## Bezpečnostné poznámky

@@ -14,21 +14,27 @@ export DISPLAY=:0
 # Kill any existing chromium processes
 pkill -f chromium-browser
 
-# Start the Flask application in background
-echo "Starting Flask application..."
-python3 main.py &
-FLASK_PID=$!
+# Check if Flask application is already running
+if curl -s http://localhost:5000 > /dev/null; then
+    echo "Flask application is already running"
+    FLASK_PID=""
+else
+    # Start the Flask application in background
+    echo "Starting Flask application..."
+    python3 main.py &
+    FLASK_PID=$!
 
-# Wait for Flask to start
-sleep 5
+    # Wait for Flask to start
+    sleep 5
 
-# Check if Flask is running
-if ! curl -s http://localhost:5000 > /dev/null; then
-    echo "Flask application failed to start"
-    exit 1
+    # Check if Flask is running
+    if ! curl -s http://localhost:5000 > /dev/null; then
+        echo "Flask application failed to start"
+        exit 1
+    fi
+
+    echo "Flask application started successfully"
 fi
-
-echo "Flask application started successfully"
 
 # Start Chromium in kiosk mode
 echo "Starting Chromium in kiosk mode..."
@@ -94,7 +100,10 @@ CHROMIUM_PID=$!
 cleanup() {
     echo "Cleaning up..."
     kill $CHROMIUM_PID 2>/dev/null
-    kill $FLASK_PID 2>/dev/null
+    # Only kill Flask if we started it
+    if [ -n "$FLASK_PID" ]; then
+        kill $FLASK_PID 2>/dev/null
+    fi
     exit 0
 }
 
@@ -104,7 +113,9 @@ trap cleanup SIGINT SIGTERM
 # Wait for Chromium to exit
 wait $CHROMIUM_PID
 
-# Clean up Flask process
-kill $FLASK_PID 2>/dev/null
+# Clean up Flask process only if we started it
+if [ -n "$FLASK_PID" ]; then
+    kill $FLASK_PID 2>/dev/null
+fi
 
 echo "Kiosk mode ended"
